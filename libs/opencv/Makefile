@@ -33,7 +33,7 @@ endef
 define Package/opencv
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+libpthread +librt +libstdcpp +zlib
+  DEPENDS:=+libpthread +librt +libstdcpp +zlib +libjpeg +libv4l
   TITLE:= opencv-2.4.8
 endef
 
