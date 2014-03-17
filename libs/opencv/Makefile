@@ -14,7 +14,7 @@ PKG_USE_MIPS16:=0
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).zip
 PKG_SOURCE_URL:=http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.8/
-#PKG_MD5SUM:=3d8e01537e747d7997993c70f2e108db
+PKG_MD5SUM:=50cc1433b3654074206f5b3dbfd49848
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
