@@ -1,0 +1,25 @@
+#!/bin/sh
+
+UCI="/sbin/uci"
+
+machine=$(awk '/machine/ {print $3}' /proc/cpuinfo)
+
+$UCI set "wireless.radio0.channel=11"
+$UCI set "wireless.@wifi-iface[0].mode=ap"
+$UCI set "wireless.@wifi-iface[0].ssid=$machine"
+$UCI set "wireless.@wifi-iface[0].encryption=none"
+$UCI delete "wireless.@wifi-iface[0].key"
+$UCI delete "wireless.radio0.country"
+
+$UCI set "network.lan.ipaddr=192.168.240.1"
+$UCI set "network.lan.netmask=255.255.255.0"
+$UCI set "network.lan.proto=static"
+
+#$UCI add_list "dhcp.@dnsmasq[0].address=/#/192.168.240.1"
+
+$UCI commit
+
+#/bin/sed -i "s/#C:192.168/C:192.168/g" /etc/httpd.conf
+
+/sbin/reboot
+

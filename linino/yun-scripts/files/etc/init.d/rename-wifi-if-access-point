@@ -1,0 +1,23 @@
+#!/bin/sh /etc/rc.common
+
+START=18
+
+start() {
+	MODE=`/sbin/uci get wireless.@wifi-iface[0].mode`
+	SSID=`/sbin/uci get wireless.@wifi-iface[0].ssid`
+
+	if [ "$SSID" != "Arduino" -a "$SSID" != "Linino" ]
+	then
+		return
+	fi
+
+	if [ "$MODE" == "ap"  ]
+	then
+		SSID_SUFFIX=`/sbin/ifconfig wlan0 | /usr/bin/head -n 1 | /bin/grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' | /bin/sed 's/://g'`
+		SSID="$SSID-$SSID_SUFFIX"
+		/sbin/uci "set" "wireless.@wifi-iface[0].ssid=$SSID"
+		/sbin/uci commit wireless
+		logger -t rename "WiFi renamed $SSID"
+	fi
+}
+
