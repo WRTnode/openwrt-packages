@@ -44,11 +44,11 @@ define Package/uSDaemon/postinst
 #!/bin/sh -e
 if [ -n "$${IPKG_INSTROOT}" ]; then
 	#configuring fstab
-	rm "$${IPKG_INSTROOT}/etc/config/fstab"
+	rm -f "$${IPKG_INSTROOT}/etc/config/fstab"
 	mv "$${IPKG_INSTROOT}/etc/config/fstab.1" "$${IPKG_INSTROOT}/etc/config/fstab"
 
 	#replacing 40-mount script
-	rm "$${IPKG_INSTROOT}/etc/hotplug.d/block/40-mount"
+	rm -f "$${IPKG_INSTROOT}/etc/hotplug.d/block/40-mount"
 	mv "$${IPKG_INSTROOT}/etc/hotplug.d/block/40-mount.1" "$${IPKG_INSTROOT}/etc/hotplug.d/block/40-mount"
 fi
 endef
