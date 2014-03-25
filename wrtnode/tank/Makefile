@@ -19,13 +19,13 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/tank
   SECTION:=wrtnode
-  CATEGORY:=wrtnode
-  SUBMENU := user_sample
-  TITLE:= tank test 
+  CATEGORY:=WRTnode
+  SUBMENU :=demos
+  TITLE:=Tank SPI controller 
 endef
 
 define Package/tank/description
-	wrtnode tank demo app 
+	WRTnode tank demo application throgh SPI interface 
 endef
 
 define Build/Prepare
