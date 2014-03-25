@@ -1,21 +1,47 @@
-OUTDIR = ./bin
-OBJECTS = $(OUTDIR)/uARM_driver.o $(OUTDIR)/UART.o $(OUTDIR)/main.o
+# Copyright (C) 2014 WRTnode machine team.
+#
+# This is free software, licensed under the GNU General Public License v2.
+# See /LICENSE for more information.
+#
+# noel<noel@wrtnode.com>
+#
 
-VPATH = src
+include $(TOPDIR)/rules.mk
 
-CC = ~/WRTnodeSDK_14_2_28/staging_dir/toolchain-mipsel_24kec+dsp_gcc-4.6-linaro_uClibc-0.9.33.2/bin/mipsel-openwrt-linux-uclibc-gcc
-#CC = gcc
+PKG_NAME:=uARM
+PKG_RELEASE:=1
 
-uArm: $(OBJECTS)
-	$(CC) -o $(OUTDIR)/uArm $(OBJECTS) -lm
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
+PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
-$(OUTDIR)/main.o: main.c UART.h uARM_driver.h
-	$(CC) -c $(VPATH)/main.c -o $(OUTDIR)/main.o
-$(OUTDIR)/uARM_driver.o: uARM_driver.h
-	$(CC) -c $(VPATH)/uARM_driver.c -lm -o $(OUTDIR)/uARM_driver.o
-$(OUTDIR)/UART.o: UART.h
-	$(CC) -c $(VPATH)/UART.c -o $(OUTDIR)/UART.o
+include $(INCLUDE_DIR)/kernel.mk
+include $(INCLUDE_DIR)/package.mk
 
-.PHONY: clean
-clean:
-	-rm $(OUTDIR)/uArm $(OBJECTS)
+define Package/uARM
+  SECTION:=wrtnode
+  CATEGORY:=WRTnode
+  SUBMENU :=demos
+  TITLE:=uARM demo app 
+endef
+
+define Package/uARM/description
+	WRTnode uARM demo application 
+endef
+
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) ./src/* $(PKG_BUILD_DIR)/
+endef
+     
+define Build/Compile
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		$(TARGET_CONFIGURE_OPTS) CFLAGS="$(TARGET_CFLAGS)"
+endef
+
+define Package/uARM/install
+	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/uarm $(1)/usr/bin/
+endef
+
+$(eval $(call BuildPackage,uARM))
+
