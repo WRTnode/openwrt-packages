@@ -1,56 +1,55 @@
 /*
-	文件：uARM_driver.c
-	说明：uARM驱动源文件
-	作者：SchumyHao
-	版本：V02
-	日期：2013.03.18
+	FileName	：uARM_driver.c
+	Description	：Source code of uARM driver
+	Author		：SchumyHao
+	Version		：V03
+	Data		：2013.03.26
 */
+/* Uncomment next line if you want to debug the code. */
 #define DEBUG
 
-/* 头文件 */
+/* Include files */
 #include "uARM_driver.h"
 
-
-/* 函数 */
-/* 发送控制指令函数 */
+/* Functions */
+/* Control data transmit function */
 int SendData(FILE* const pFp, int const BuffDeep, const char* pBuff){
 	int i,j;
-	/*#ifdef DEBUG
 	for(j=0; j<BuffDeep; j++){
+		#ifdef DEBUG
 		printf("%4d	",j+1);
+		#endif
 		for (i=0; i<BUFFER_SIZE; i++){
-			printf("0x%2x ",pBuff[j*BUFFER_SIZE+i]);
-		}
-		printf("\n");
-	}
-	#endif*/
-	for(j=0; j<BuffDeep; j++){
-		for (i=0; i<BUFFER_SIZE; i++){
+			#ifdef DEBUG
+			printf("0x%x ",pBuff[j*BUFFER_SIZE+i]);
+			#endif
 			if(fputc(pBuff[j*BUFFER_SIZE+i], pFp) == -1)
 				break;
 		}
-		if (i < BUFFER_SIZE){		//没有全部发送
-			perror("Send data incomplete.\n");
+		if (i < BUFFER_SIZE){
+			perror("Tramsmit data incomplete.\n");
 			return -1;
 		}
+		#ifdef DEBUG
+		printf("\n");
+		#endif
 		usleep(FRAME_DELAY_TIME);
 	}
 	return 0;
 }
-/* 坐标系结构体参数初始化 */
-int InitCoordinateSystem(t_coordinate* pCooSys){
+
+/* Coordinate initialize function */
+int InitCoordinateSystem(t_Coordinate* pCooSys){
 	pCooSys->X = DEFAULT_X_LOCATION;
 	pCooSys->Y = DEFAULT_Y_LOCATION;
+	pCooSys->H = DEFAULT_H_LOCATION;
 	pCooSys->Angle = DEFAULT_A_DEGREE;
 	pCooSys->Radius = DEFAULT_R_LENGTH;
-	pCooSys->DestAngle = DEFAULT_DEST_A;
-	pCooSys->DestRadius = DEFAULT_DEST_R;
-	pCooSys->CurrAngle = DEFAULT_A_DEGREE;
-	pCooSys->CurrRadius = DEFAULT_R_LENGTH;
 	return 0;
 }
-/* 坐标系参数变换 */
-int ShiftCoordinate(t_coordinate* pCooSys){
+
+/* Change the coordinate from rectangular to polar */
+int ShiftCoordinate(t_Coordinate* pCooSys){
 	assert(IS_X_LOCATION(pCooSys->X));
 	assert(IS_Y_LOCATION(pCooSys->Y));
 	int DistX = pCooSys->X - UARM_X_LOCATION;
@@ -60,37 +59,115 @@ int ShiftCoordinate(t_coordinate* pCooSys){
 			((DistX>0)?MAX_A_DEGREE:((DistX<0)?MIN_A_DEGREE:DEFAULT_A_DEGREE)));
 	return 0;
 }
-/* 动作生成 */
-int GenerateMotion(t_coordinate* pCooSys, char* pBuff){
+
+/* Motion data Generation function */
+int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char* pBuff){
 	assert(IS_A_DEGREE(pCooSys->Angle));
 	assert(IS_R_LENGTH(pCooSys->Radius));
-	assert(IS_DESTINATION_A(pCooSys->DestAngle));
-	assert(IS_DESTINATION_R(pCooSys->DestRadius));
+	assert(IS_H_LOCATION(pCooSys->H));
+
 	#ifdef GO_WITH_LINE
+	t_Move Move;
+	int BuffDeep = 0;
+	int i;
+	
+	/* Go to pick up the coin */
+	Move.DestAngle = pCooSys->Angle;
+	Move.DestRadius = pCooSys->Radius;
+	Move.DestHight = pCooSys->H;
+	Move.CurrAngle = DEFAULT_A_DEGREE;
+	Move.CurrRadius = DEFAULT_R_LENGTH;
+	Move.CurrHight = DEFAULT_H_LOCATION;
+	BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+	/* Pick up the coin */
+	for(i=PICK_RETRY_TIMES; i>0; i--){
+		BuffDeep = HandleArm(MOTION_PICK, \
+			(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+	}
+	/* Go to coin collection place */
+	switch(Dest){
+	case DEST_ONE:
+		Move.DestAngle = DEST_ONE_A;
+		Move.DestRadius = DEST_ONE_R;
+		Move.DestHight = DEST_ONE_H;
+		break;
+	case DEST_FIVE:
+		Move.DestAngle = DEST_FIVE_A;
+		Move.DestRadius = DEST_FIVE_R;
+		Move.DestHight = DEST_FIVE_H;
+		break;
+	case DEFAULT_DEST:
+	default:
+		Move.DestAngle = DEFAULT_A_DEGREE;
+		Move.DestRadius = DEFAULT_R_LENGTH;
+		Move.DestHight = DEFAULT_H_LOCATION;
+	}
+	Move.CurrAngle = pCooSys->Angle;
+	Move.CurrRadius = pCooSys->Radius;
+	Move.CurrHight = pCooSys->H;
+	BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+	/* Put down the coin */
+	BuffDeep = HandleArm(MOTION_RELEASE, \
+		(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+	/* Go to initial place */
+	switch(Dest){
+	case DEST_ONE:
+		Move.CurrAngle = DEST_ONE_A;
+		Move.CurrRadius = DEST_ONE_R;
+		Move.CurrHight = DEST_ONE_H;
+		break;
+	case DEST_FIVE:
+		Move.CurrAngle = DEST_FIVE_A;
+		Move.CurrRadius = DEST_FIVE_R;
+		Move.CurrHight = DEST_FIVE_H;
+		break;
+	case DEFAULT_DEST:
+	default:
+		Move.CurrAngle = DEFAULT_A_DEGREE;
+		Move.CurrRadius = DEFAULT_R_LENGTH;
+		Move.CurrHight = DEFAULT_H_LOCATION;
+	}
+	Move.DestAngle = DEFAULT_A_DEGREE;
+	Move.DestRadius = DEFAULT_R_LENGTH;
+	Move.DestHight = DEFAULT_H_LOCATION;
+	BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+	#endif
+	#ifdef GO_WITH_PARABOLA
+	//TODO:go twith parabola.
+	#endif
+	return BuffDeep;
+}
+
+/*  Arm move function */
+int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep){
+	assert(IS_A_DEGREE(pMotion->DestAngle));
+	assert(IS_R_LENGTH(pMotion->DestRadius));
+	assert(IS_H_LOCATION(pMotion->DestHight));
+	assert(IS_A_DEGREE(pMotion->CurrAngle));
+	assert(IS_R_LENGTH(pMotion->CurrRadius));
+	assert(IS_H_LOCATION(pMotion->CurrHight));
+
 	int TempA,TempR,TempH;
 	int MaxLoop;
 	int StepA,StepR,StepH;
 	int i;
-	int BuffDeep = 0;
-	/* 去捡钱 */
-	//计算Angle、Radius、Hight各自差
-	TempA = pCooSys->Angle - pCooSys->CurrAngle;
-	TempR = pCooSys->Radius - pCooSys->CurrRadius;
-	TempH = MIN_H_POSITION - MAX_H_POSITION;	//从上至下
-	//计算最大的循环周期
+	//Caculate Angle、Radius、Hight distance
+	TempA = pMotion->DestAngle - pMotion->CurrAngle;
+	TempR = pMotion->DestRadius - pMotion->CurrRadius;
+	TempH = pMotion->DestHight - pMotion->CurrHight;
+	//Caculate max loop cycle number
 	MaxLoop = MAX2(abs(TempA),(MAX2(abs(TempR),abs(TempH))));
-	//计算步长
+	//Caculate step
 	StepA = abs((TempA)?(MaxLoop/TempA):MaxLoop);
 	StepR = abs((TempR)?(MaxLoop/TempR):MaxLoop);
 	StepH = abs((TempH)?(MaxLoop/TempH):MaxLoop);
 	#ifdef DEBUG
-	printf("\nBefor go to pick the coin.\n");
-	printf("Current Angle is %d.\n",pCooSys->CurrAngle);
-	printf("Current Radius is %d.\n",pCooSys->CurrRadius);
-	printf("Current Hight is %d.\n",MAX_H_POSITION);
-	printf("Destination Angle is %d.\n",pCooSys->Angle);
-	printf("Destination Radius is %d.\n",pCooSys->Radius);
-	printf("Destination Hight is %d.\n",MIN_H_POSITION);
+	printf("Current Angle is %d.\n",pMotion->CurrAngle);
+	printf("Current Radius is %d.\n",pMotion->CurrRadius);
+	printf("Current Hight is %d.\n",pMotion->CurrHight);
+	printf("Destination Angle is %d.\n",pMotion->DestAngle);
+	printf("Destination Radius is %d.\n",pMotion->DestRadius);
+	printf("Destination Hight is %d.\n",pMotion->DestHight);
 	printf("TempA is DestA-CurrA = %d.\n",TempA);
 	printf("TempR is DestR-CurrR = %d.\n",TempR);
 	printf("TempH is DestH-CurrH = %d.\n",TempH);
@@ -99,120 +176,46 @@ int GenerateMotion(t_coordinate* pCooSys, char* pBuff){
 	printf("StepR is %d.\n",StepR);
 	printf("StepH is %d.\n",StepH);
 	#endif
-	//循环赋值
 	for(i=MaxLoop; i>0; i--){
-		//赋值
-		pCooSys->CurrAngle += ((i%StepA) || (!TempA))? \
+		pMotion->CurrAngle += ((i%StepA) || (!TempA))? \
 				0:(SINGNAL(TempA));
-		pCooSys->CurrRadius += ((i%StepR) || (!TempR))? \
+		pMotion->CurrRadius += ((i%StepR) || (!TempR))? \
 				0:(SINGNAL(TempR));
+		pMotion->CurrHight += ((i%StepH) || (!TempH))? \
+				0:(SINGNAL(TempH));
 		TempA -= ((i%StepA)||(!TempA))?0:(SINGNAL(TempA));
 		TempR -= ((i%StepR)||(!TempR))?0:(SINGNAL(TempR));
 		TempH -= ((i%StepH)||(!TempH))?0:(SINGNAL(TempH));
 
 		*pBuff++ = FRAME_HEADER_H;
 		*pBuff++ = FRAME_HEADER_L;
-		*pBuff++ = HI_BYTE(pCooSys->CurrAngle);
-		*pBuff++ = LO_BYTE(pCooSys->CurrAngle);
-		*pBuff++ = HI_BYTE(pCooSys->CurrRadius);
-		*pBuff++ = LO_BYTE(pCooSys->CurrRadius);
-		*pBuff++ = ((i%StepH)||(!TempH))?MOTION_NONE:MOTION_H_DOWN;
-		//缓冲深度加一
+		*pBuff++ = HI_BYTE(pMotion->CurrAngle);
+		*pBuff++ = LO_BYTE(pMotion->CurrAngle);
+		*pBuff++ = HI_BYTE(pMotion->CurrRadius);
+		*pBuff++ = LO_BYTE(pMotion->CurrRadius);
+		*pBuff++ = (TempH<0)?MOTION_H_DOWN: \
+			((TempH>0)?MOTION_H_UP:MOTION_NONE);
 		BuffDeep++;
 	}
+	return BuffDeep;
+}
+
+/* Arm handle function */
+int HandleArm(const unsigned char Motion, char* pBuff, int BuffDeep){
 	#ifdef DEBUG
-	printf("BuffDeep in go to pick is %d.\n",BuffDeep);
+	printf("Current motion is %d.\n",Motion);
 	#endif
-	/* 捡钱 */
-	//吸取硬币
-	#ifdef DEBUG
-	printf("\nBefor pick coin.\n");
-	printf("Current Angle is %d.\n",pCooSys->CurrAngle);
-	printf("Current Radius is %d.\n",pCooSys->CurrRadius);
-	printf("Current Hight is %d.\n",MIN_H_POSITION);
-	#endif
-	for(i=PICK_RETRY_TIMES; i>0; i--){
-		*pBuff++ = FRAME_HEADER_H;
-		*pBuff++ = FRAME_HEADER_L;
-		*pBuff++ = HI_BYTE(pCooSys->CurrAngle);
-		*pBuff++ = LO_BYTE(pCooSys->CurrAngle);
-		*pBuff++ = HI_BYTE(pCooSys->CurrRadius);
-		*pBuff++ = LO_BYTE(pCooSys->CurrRadius);
-		*pBuff++ = MOTION_PICK;
+	if(pBuff-BUFFER_SIZE > 0){
+		*pBuff++ = *(pBuff-BUFFER_SIZE);
+		*pBuff++ = *(pBuff-BUFFER_SIZE);
+		*pBuff++ = *(pBuff-BUFFER_SIZE);
+		*pBuff++ = *(pBuff-BUFFER_SIZE);
+		*pBuff++ = *(pBuff-BUFFER_SIZE);
+		*pBuff++ = *(pBuff-BUFFER_SIZE);
+		*pBuff++ = Motion;
 		BuffDeep++;
 	}
-	#ifdef DEBUG
-	printf("BuffDeep in pick is %d.\n",BuffDeep);
-	#endif
-	/* 到马上 */
-	//计算Angle、Radius、Hight各自差。此时Curr位置和硬币位置相同
-	TempA = pCooSys->DestAngle - pCooSys->CurrAngle;
-	TempR = pCooSys->DestRadius - pCooSys->CurrRadius;
-	TempH = MAX_H_POSITION - MIN_H_POSITION;	//自下往上
-
-	MaxLoop = MAX2(abs(TempA),(MAX2(abs(TempR),abs(TempH))));
-
-	StepA = abs((TempA)?(MaxLoop/TempA):MaxLoop);
-	StepR = abs((TempR)?(MaxLoop/TempR):MaxLoop);
-	StepH = abs((TempH)?(MaxLoop/TempH):MaxLoop);
-	#ifdef DEBUG
-	printf("\nBefor go to horse.\n");
-	printf("Current Angle is %d.\n",pCooSys->CurrAngle);
-	printf("Current Radius is %d.\n",pCooSys->CurrRadius);
-	printf("Current Hight is %d.\n",MIN_H_POSITION);
-	printf("Destination Angle is %d.\n",pCooSys->DestAngle);
-	printf("Destination Radius is %d.\n",pCooSys->DestRadius);
-	printf("Destination Hight is %d.\n",MAX_H_POSITION);
-	printf("TempA is DestA-CurrA = %d.\n",TempA);
-	printf("TempR is DestR-CurrR = %d.\n",TempR);
-	printf("TempH is DestH-CurrH = %d.\n",TempH);
-	printf("\nMaxLoop is %d.\n",MaxLoop);
-	printf("StepA is %d.\n",StepA);
-	printf("StepR is %d.\n",StepR);
-	printf("StepH is %d.\n",StepH);
-	#endif
-	for(i=MaxLoop; i>0; i--){
-		pCooSys->CurrAngle += ((i%StepA) || (!TempA))? \
-				0:(SINGNAL(TempA));
-		pCooSys->CurrRadius += ((i%StepR) || (!TempR))? \
-				0:(SINGNAL(TempR));
-		TempA -= ((i%StepA)||(!TempA))?0:(SINGNAL(TempA));
-		TempR -= ((i%StepR)||(!TempR))?0:(SINGNAL(TempR));
-		TempH -= ((i%StepH)||(!TempH))?0:(SINGNAL(TempH));
-
-		*pBuff++ = FRAME_HEADER_H;
-		*pBuff++ = FRAME_HEADER_L;
-		*pBuff++ = HI_BYTE(pCooSys->CurrAngle);
-		*pBuff++ = LO_BYTE(pCooSys->CurrAngle);
-		*pBuff++ = HI_BYTE(pCooSys->CurrRadius);
-		*pBuff++ = LO_BYTE(pCooSys->CurrRadius);
-		*pBuff++ = ((i%StepH)||(!TempH))?MOTION_NONE:MOTION_H_UP;
-		BuffDeep++;
-	}
-	#ifdef DEBUG
-	printf("BuffDeep in go to horse is %d.\n",BuffDeep);
-	#endif
-	/* 放下 */
-	#ifdef DEBUG
-	printf("\nBefor drop cion.\n");
-	printf("Current Angle is %d.\n",pCooSys->CurrAngle);
-	printf("Current Radius is %d.\n",pCooSys->CurrRadius);
-	printf("Current Hight is %d.\n",MAX_H_POSITION);
-	#endif
-	*pBuff++ = FRAME_HEADER_H;
-	*pBuff++ = FRAME_HEADER_L;
-	*pBuff++ = HI_BYTE(pCooSys->CurrAngle);
-	*pBuff++ = LO_BYTE(pCooSys->CurrAngle);
-	*pBuff++ = HI_BYTE(pCooSys->CurrRadius);
-	*pBuff++ = LO_BYTE(pCooSys->CurrRadius);
-	*pBuff++ = MOTION_RELEASE;
-	//缓冲深度加一
-	BuffDeep++;
-	#ifdef DEBUG
-	printf("BuffDeep in drop is %d.\n",BuffDeep);
-	#endif
-	#endif
-	#ifdef GO_WITH_PARABOLA
-	#endif
+	else
+		perror("Please move the ARM first.\n");
 	return BuffDeep;
 }

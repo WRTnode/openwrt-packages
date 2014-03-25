@@ -1,35 +1,35 @@
 /*
-	文件：main.c
-	说明：uARM驱动主函数
-	作者：SchumyHao
-	版本：V02
-	日期：2013.03.18
+	FileName	：main.c
+	Description	：The main function of uARM_driver.
+	Author		：SchumyHao
+	Version		：V03
+	Data		：2013.03.25
 */
-/* 调试定义 */
+/* Uncomment next line if you want to debug the code. */
 #define DEBUG
 
-/* 头文件 */
+/* Include files */
 #include "UART.h"
 #include "uARM_driver.h"
 
-/* 参数定义 */
+/* Define the const */
 #define HOST_UART_PORT 	(0)
-#define ARGC_MUN	(4)
+#define ARGC_MUN	(5)
 
-/* 函数 */
+/* Functions */
 int main(int argc, char* argv[]){
-	/* 局部变量声明 */
 	int tmp;
 	int BuffDeep = DEFAULT_BUFF_DEEP;
-	t_coordinate CooSys;
+	int Dest = DEFAULT_DEST;	//find one or five?
+	t_Coordinate CooSys;
 	t_uart UartConfig;
 	struct termios OldCfg;
 	char* pBuff = NULL;
-	/* 坐标系初始化 */
+	/* Initialize the coordinate */
 	InitCoordinateSystem(&CooSys);
-	/* 串口结构体初始化 */
+	/* Initialize the UART */
 	InitUartStruct(&UartConfig);
-	/* 输入参数检查 */
+	/* Check the input arguments */
 	#ifdef DEBUG
 	int i;
 	for(i = 0; i < argc; i++){
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]){
 			CooSys.X = tmp;
 		}
 		else{
-			perror("1st argument 'x' wrong!\n");
+			perror("1st argument 'x' is wrong!\n");
 			return -1;
 		}
 		tmp = atoi(argv[2]);
@@ -50,37 +50,32 @@ int main(int argc, char* argv[]){
 			CooSys.Y = tmp;
 		}
 		else{
-			perror("2nd argument 'y' wrong!\n");
+			perror("2nd argument 'y' is wrong!\n");
 			return -1;
 		}
 		tmp = atoi(argv[3]);
-		if(IS_DESTINATION(tmp)){
-			switch(tmp){
-			case DEST_ONE:
-				CooSys.DestAngle = DEST_ONE_A;
-				CooSys.DestRadius = DEST_ONE_R;
-				break;
-			case DEST_FIVE:
-				CooSys.DestAngle = DEST_FIVE_A;
-				CooSys.DestRadius = DEST_FIVE_R;
-				break;
-			case DEFAULT_DEST:
-			default:
-				CooSys.DestAngle = DEFAULT_DEST_A;
-				CooSys.DestRadius = DEFAULT_DEST_R;
-			}
+		if(IS_H_LOCATION(tmp)){
+			CooSys.H = tmp;
 		}
 		else{
-			perror("3rd argument 'destination' wrong!\n");
+			perror("3rd argument 'h' is wrong!\n");
+			return -1;
+		}
+		tmp = atoi(argv[4]);
+		if(IS_DESTINATION(tmp)){
+			Dest = tmp;
+		}
+		else{
+			perror("4th argument 'destination' is wrong!\n");
 			return -1;
 		}
 	}
 	else{
-		perror("Argument number is wrong!\n");
+		perror("Arguments number is wrong!\n");
 		return -1;
 	}
 
-	/* 坐标变换 */
+	/* Change the coordinate from rectangular to polar. */
 	ShiftCoordinate(&CooSys);
 	#ifdef DEBUG
 	printf("X location is %d.\n",CooSys.X);
@@ -88,28 +83,26 @@ int main(int argc, char* argv[]){
 	printf("Angle degree is %d.\n",CooSys.Angle);
 	printf("Radius length is %d.\n",CooSys.Radius);
 	#endif
-	/* 动作生成函数 */
+	/* Generate the motion data */
 	pBuff = (char*)malloc(sizeof(char)*BUFFER_SIZE*BUFFER_DEEP);
 	if(pBuff == NULL){
-		perror("Memory allocation wrong.\n");
+		perror("Memory allocated wrong.\n");
 		return -1;
 	}
-	BuffDeep = GenerateMotion(&CooSys, pBuff);
+	BuffDeep = GenerateMotion(&CooSys, Dest, pBuff);
 	if(BuffDeep == DEFAULT_BUFF_DEEP){
-		perror("Motion generation wrong.\n");
+		perror("Motion generated wrong.\n");
 		return -1;
 	}
 	#ifdef DEBUG
 	printf("BuffDeep is %d.\n",BuffDeep);
 	#endif
-	/* 串口配置 */
-	//打开串口设备文件
+	/* Configurate the UART */
 	UartConfig.Fd = OpenPort(HOST_UART_PORT);
 	if(UartConfig.Fd < 0){
 		perror("Can not open UART port.\n");	
 		return -1;
 	}
-	//在设备文件上打开标准IO流
 	UartConfig.pFp=fdopen(UartConfig.Fd,"w");
 	if(UartConfig.pFp == NULL){
 		perror("Can not open UART stream!\n");
@@ -117,11 +110,9 @@ int main(int argc, char* argv[]){
 	}
 	//Change the buffer type to none.
 	setbuf(UartConfig.pFp, NULL);
-
 	#ifdef DEBUG
 	printf("UART device fd is %d.\n",UartConfig.Fd);
 	#endif
-	//配置串口参数
 	UartConfig.BaudRate = BAUD_RATE_9600;
 	UartConfig.DataBits = DATA_BITS_8BITS;
 	UartConfig.Parity = PARITY_NONE;
@@ -130,15 +121,15 @@ int main(int argc, char* argv[]){
 		perror("Config UART error.\n");
 		return -1;
 	}
-	/* 发送数据 */
+	/* Transmit data */
 	if(SendData(UartConfig.pFp, BuffDeep, pBuff) < 0){
 		perror("Send data error.\n");
 		return -1;
 	}
-	/* 释放内存，还原缓冲深度变量 */
+	/* Free the buff memory */
 	free(pBuff);
 	BuffDeep = DEFAULT_BUFF_DEEP;
-	/* 还原终端之前的配置 */
+	/* Restore the UART config parameters */
 	if((tcsetattr(UartConfig.Fd, TCSANOW, &OldCfg)) != 0){
 		perror("Revert tty error.\n");
 		return -1;

@@ -1,22 +1,21 @@
 /*
-	文件：UART.c
-	说明：串口控制函数源文件
-	作者：SchumyHao
-	版本：V02
-	日期：2013.03.18
+	FileName	：UART.c
+	Description	：Source code of UART config.
+	Author		：SchumyHao
+	Version		：V03
+	Data		：2013.03.26
 */
 
-/* 串口类型定义 ：标准串口GNR_COM；USB串口USB_COM；Arduino串口*/
 /*#define GNR_COM*/
 /*#define USB_COM*/
 #define ACM_COM
-//TODO：没有定义时的提示
+//TODO：If user didn't define the uart type.
 
-/* 头文件 */
+/* Include files */
 #include "UART.h"
 
-/* 函数 */
-/* 串口配置函数 */
+/* Functions */
+/* Congit UART function */
 int ConfigUart(t_uart* pUart, struct termios* pOldCfg){
 	assert(IS_FD(pUart->Fd));
 	assert(IS_BAUD_RATE(pUart->BaudRate));
@@ -27,17 +26,17 @@ int ConfigUart(t_uart* pUart, struct termios* pOldCfg){
 	struct termios NewCfg;
 	int Speed;
 	
-	//读当前TTY属性
+	//Read current TTY attributes.
 	if (tcgetattr(pUart->Fd, pOldCfg) != 0){
 		perror("Can not got current com_config.\n");
 		return -1;
 	}
 	
 	NewCfg = *pOldCfg;
-	//将TTY设置为RAW模式
+	//Set TTY as RAW.
 	cfmakeraw(&NewCfg);
 	NewCfg.c_cflag &= ~CSIZE;
-	//设置模波特率
+	//Set TTY's baudrate.
 	switch (pUart->BaudRate){
 		case BAUD_RATE_2400:
 			Speed = B2400;break;
@@ -56,7 +55,7 @@ int ConfigUart(t_uart* pUart, struct termios* pOldCfg){
 	}
 	cfsetispeed(&NewCfg, Speed);
 	cfsetospeed(&NewCfg, Speed);
-	//设置数据位
+	//Set TTY's databits.
 	switch (pUart->DataBits){
 		case DATA_BITS_7BITS:
 			NewCfg.c_cflag |= CS7;break;
@@ -65,7 +64,7 @@ int ConfigUart(t_uart* pUart, struct termios* pOldCfg){
 			NewCfg.c_cflag |= CS8;
 			
 	}
-	//设置校验位
+	//Set TTY's parity
 	switch (pUart->Parity){
 		case PARITY_O:
 			NewCfg.c_cflag |= (PARODD | PARENB);
@@ -81,7 +80,7 @@ int ConfigUart(t_uart* pUart, struct termios* pOldCfg){
 			NewCfg.c_cflag &= ~PARENB;
 			NewCfg.c_iflag &= ~INPCK;
 	}
-	//设置停止位
+	//Set TTY's stopbits
 	switch (pUart->StopBits){
 		case STOP_BITS_2BITS:
 			NewCfg.c_cflag |= CSTOPB;break;
@@ -89,12 +88,12 @@ int ConfigUart(t_uart* pUart, struct termios* pOldCfg){
 		default:
 			NewCfg.c_cflag &= ~CSTOPB;
 	}
-	//设置接收等待时间
+	//Set TTY's receive wait time.
 	NewCfg.c_cc[VTIME] = 0;		//Wait forever
 	NewCfg.c_cc[VMIN] = 1;		//Return when recieve 1byte
-	//清除旧数据
+	//Flush old data.
 	tcflush(pUart->Fd, TCIOFLUSH);	//Clean input&output data
-	//激活新配置属性
+
 	if((tcsetattr(pUart->Fd, TCSANOW, &NewCfg)) != 0){
 		perror("Active configuration failed!\n");
 		return -1;
@@ -102,7 +101,7 @@ int ConfigUart(t_uart* pUart, struct termios* pOldCfg){
 	return 0;
 }
 
-/* 串口结构体初始化函数 */
+/* UART initialize function */
 int InitUartStruct(t_uart* pUart){
 	pUart->Fd = INIT_FD;
 	pUart->pFp = NULL;
@@ -113,7 +112,7 @@ int InitUartStruct(t_uart* pUart){
 	return 0;
 }
 
-/* 打开串口函数 */
+/* Open UART's device file function */
 int OpenPort(int const ComPort){
 	assert(IS_COM_PORT(ComPort));
 	int Fd;
@@ -127,23 +126,20 @@ int OpenPort(int const ComPort){
 	char *pDev[] = {"/dev/ttyACM0","/dev/ttyACM1","/dev/ttyACM2"};
 	#endif
 
-#ifdef DEBUG
-printf("UART device is %s.\n",pDev[ComPort]);
-#endif
-	//打开设备文件：O_NOCTTY:不将终端设置为此进程的控制终端（仅通信）
-	//O_NONBLOCK：I/O操作设置为非阻塞模式：操作不能完成返回错误，并不阻塞进程
+	#ifdef DEBUG
+	printf("UART device is %s.\n",pDev[ComPort]);
+	#endif
+
 	if((Fd = open(pDev[ComPort], O_RDWR|O_NOCTTY|O_NONBLOCK)) < 0){
 		perror("Can not open serial port.\n");
 		return -1;
 	}
-	//将串口设定位阻塞模式，等待串口输入
-	//TODO：测试先非阻塞，后阻塞的用意
+
 	if(fcntl(Fd, F_SETFL, 0) < 0){
 		perror("Can not block input.\n");
 		return -1;
 	}
-	//测试串口是否为Terminal
-	//TODO：这里又是做了什么？
+
 	if(isatty(STDIN_FILENO) == 0){
 		perror("Serial is not a terminal device.\n");
 		return -1;

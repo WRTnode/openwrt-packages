@@ -1,14 +1,14 @@
 /*
-	文件：uARM_driver.h
-	说明：uARM驱动头文件
-	作者：SchumyHao
-	版本：V01
-	日期：2013.03.19
+	FileName	：uARM_driver.h
+	Description	：uARM驱动头文件
+	Author		：SchumyHao
+	Version		：V03
+	Data		：2013.03.26
 */
 #ifndef __UARM_DRIVER_H__
 #define __UARM_DRIVER_H__
 
-/* 头文件 */
+/* Include files */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,85 +20,41 @@
 #include <assert.h>
 #include <math.h>
 
-/* 参数定义 */
-/* PI定义 */
+/* PI define */
 #define PI			(3.1415926)
-/* 机械臂移动路径选择 */
+/* Arm moving path define */
 #define GO_WITH_LINE
 //#define GO_WITH_PARABOLA
-/* 吸取硬币尝试最大次数 */
+/* Max pick up retry times */
 #define PICK_RETRY_TIMES	(5)
-/* 数据帧间隔时间 */
-#define FRAME_DELAY_TIME	(100000)
-/* 参数调节偏移量 */
+/* Frame delay time */
+#define FRAME_DELAY_TIME	(20000)
+/* Parameter offset */
 #define OFFSET			(32768)
-/* 数据帧头 */
+/* Frame head */
 #define FRAME_HEADER_H		((unsigned char) 0xFF)
 #define FRAME_HEADER_L		((unsigned char) 0xAA)
-/* 发送指令缓存长度和深度 */
+/* Buff define */
 #define BUFFER_SIZE 		(7)
 #define BUFFER_DEEP 		(1000)
 #define DEFAULT_BUFF_DEEP	(0)
-typedef struct{
-	int X;
-	int Y;
-	int Angle;
-	int Radius;
-	int DestAngle;
-	int DestRadius;
-	int CurrAngle;
-	int CurrRadius;
-}t_coordinate;
-/* X坐标定义 */
-#define DEFAULT_X_LOCATION	(0)
-#define MAX_X_LOCATION		(100)
-#define MIN_X_LOCATION		(-100)
-#define IS_X_LOCATION(X)	(((X) >= MIN_X_LOCATION) && \
-				((X) <= MAX_X_LOCATION))
-/* Y坐标定义 */
-#define DEFAULT_Y_LOCATION	(0)
-#define MAX_Y_LOCATION		(50)
-#define MIN_Y_LOCATION		(0)
-#define IS_Y_LOCATION(Y)	(((Y) >= MIN_Y_LOCATION) && \
-				((Y) <= MAX_Y_LOCATION))
-/* H坐标定义 */
-#define MAX_H_POSITION		(100)
-#define MIN_H_POSITION		(0)
-/* 机械臂坐标定义 */
+/* uArm's location define */
 #define UARM_X_LOCATION		(0)
 #define UARM_Y_LOCATION		(-10)
-/* 目的地址定义 */
+/* Coin destination define */
 #define DEFAULT_DEST		(0)
-#define DEFAULT_DEST_A		(0)
-#define DEFAULT_DEST_R		(0)
 #define DEST_ONE		(-1)
 #define DEST_ONE_A		(-180)
 #define DEST_ONE_R		(50)
+#define DEST_ONE_H		(100)
 #define DEST_FIVE		(1)
 #define DEST_FIVE_A		(180)
 #define DEST_FIVE_R		(50)
+#define DEST_FIVE_H		(100)
 #define IS_DESTINATION(DEST)	(((DEST) == DEST_ONE) || \
 				((DEST) == DEST_FIVE) || \
 				((DEST) == DEFAULT_DEST))
-#define IS_DESTINATION_A(DEST)	(((DEST) == DEST_ONE_A) || \
-				((DEST) == DEST_FIVE_A) || \
-				((DEST) == DEFAULT_DEST_A))
-#define IS_DESTINATION_R(DEST)	(((DEST) == DEST_ONE_R) || \
-				((DEST) == DEST_FIVE_R) || \
-				((DEST) == DEFAULT_DEST_R))
-/* A(Angle)坐标定义 */
-#define DEFAULT_A_DEGREE	(0)
-#define MAX_A_DEGREE		(180)
-#define MIN_A_DEGREE		(-180)
-#define IS_A_DEGREE(A)		(((A) >= MIN_A_DEGREE) && \
-				((A) <= MAX_A_DEGREE))
-/* R(Radius)坐标定义 */
-#define DEFAULT_R_LENGTH	(0)
-#define MAX_R_LENGTH		(200)
-#define MIN_R_LENGTH		(0)
-#define IS_R_LENGTH(R)		(((R) >= MIN_R_LENGTH) && \
-				((R) <= MAX_R_LENGTH))
-/* 动作定义 */
+/* uArm motion define */
 #define MOTION_NONE		(0x20)
 #define MOTION_H_UP		(0x80)
 #define MOTION_H_DOWN		(0x40)
@@ -113,21 +69,74 @@ typedef struct{
 				((MOTION) == MOTION_RELEASE) || \
 				((MOTION) == MOTION_PICK) || \
 				((MOTION) == MOTION_NONE))
-/* 宏定义函数 */
+
+
+typedef struct{
+	int X;
+	int Y;
+	int H;
+	int Angle;
+	int Radius;
+}t_Coordinate;
+/* X coordinate */
+#define DEFAULT_X_LOCATION	(0)
+#define MAX_X_LOCATION		(100)
+#define MIN_X_LOCATION		(-100)
+#define IS_X_LOCATION(X)	(((X) >= MIN_X_LOCATION) && \
+				((X) <= MAX_X_LOCATION))
+/* Y coordinate */
+#define DEFAULT_Y_LOCATION	(0)
+#define MAX_Y_LOCATION		(50)
+#define MIN_Y_LOCATION		(0)
+#define IS_Y_LOCATION(Y)	(((Y) >= MIN_Y_LOCATION) && \
+				((Y) <= MAX_Y_LOCATION))
+/* H(Hight) coordinate*/
+#define DEFAULT_H_LOCATION	(100)
+#define MAX_H_LOCATION		(100)
+#define MIN_H_LOCATION		(-110)
+#define IS_H_LOCATION(H)	(((H) >= MIN_H_LOCATION) && \
+				((H) <= MAX_H_LOCATION))
+/* A(Angle) coordinate */
+#define DEFAULT_A_DEGREE	(0)
+#define MAX_A_DEGREE		(180)
+#define MIN_A_DEGREE		(-180)
+#define IS_A_DEGREE(A)		(((A) >= MIN_A_DEGREE) && \
+				((A) <= MAX_A_DEGREE))
+/* R(Radius) coordinate */
+#define DEFAULT_R_LENGTH	(0)
+#define MAX_R_LENGTH		(200)
+#define MIN_R_LENGTH		(0)
+#define IS_R_LENGTH(R)		(((R) >= MIN_R_LENGTH) && \
+				((R) <= MAX_R_LENGTH))
+typedef struct{
+	int DestAngle;
+	int DestRadius;
+	int DestHight;
+	int CurrAngle;
+	int CurrRadius;
+	int CurrHight;
+}t_Move;
+
+
+
+/* Macro function */
 #define HI_BYTE(x) 		((unsigned char)((((x)+OFFSET) & 0xff00) >> 8))
 #define LO_BYTE(x) 		((unsigned char)(((x)+OFFSET) & 0x00ff))
 #define RAD2ANG(RAD)		((RAD)*180/(PI))
 #define SINGNAL(X)		(((X) > 0)?1:(((X) == 0)?0:-1))
 #define MAX2(X,Y)		(((X) >= (Y))?(X):(Y))
 
-/* 函数声明 */
-/* 发送控制指令函数 */
-//TODO:修改新的形式
+/* Function declaration */
+/* Control data transmit function */
 int SendData(FILE* const pFp, int const BuffDeep, const char* pBuff);
-/* 坐标系结构体参数初始化 */
-int InitCoordinateSystem(t_coordinate* pCooSys);
-/* 坐标系参数变换 */
-int ShiftCoordinate(t_coordinate* pCooSys);
-/* 动作生成 */
-int GenerateMotion(t_coordinate* pCooSys, char *pBuff);
+/* Coordinate initialize function */
+int InitCoordinateSystem(t_Coordinate* pCooSys);
+/* Change the coordinate from rectangular to polar */
+int ShiftCoordinate(t_Coordinate* pCooSys);
+/* Motion data Generation function */
+int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char *pBuff);
+/* Arm move function */
+int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep);
+/* Arm handle function */
+int HandleArm(const unsigned char Motion, char* pBuff, int BuffDeep);
 #endif
