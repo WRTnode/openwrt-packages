@@ -1,12 +1,7 @@
 /*
- * SPI testing utility (using spidev driver)
- *
- * Copyright (c) 2007  MontaVista Software, Inc.
- * Copyright (c) 2007  Anton Vorontsov <avorontsov@ru.mvista.com>
+ * Spi pin to control motor rotation (using spidev driver)
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License.
  *
  * Cross-compile with cross-gcc -I/path/to/cross-kernel/include
  */
@@ -43,7 +38,7 @@ static void transfer(int fd,int argc,char *argv[])
 	int8_t tx[] = {
 		0, 0, 0, 0
 	};
-	uint8_t *rx = NULL;
+	int8_t *rx = NULL;
 	if(argc < 3){
 		printf("error : Command line arguments to be greater than or equal to 3 \n");
 		return ;
@@ -80,21 +75,6 @@ static void transfer(int fd,int argc,char *argv[])
 	if (ret < 1)
 		pabort("can't send spi message");
 
-}
-static void print_usage(const char *prog)
-{
-	printf("Usage: %s [-DsbdlHOLC3]\n", prog);
-	puts("  -D --device   device to use (default /dev/spidev1.1)\n"
-	     "  -s --speed    max speed (Hz)\n"
-	     "  -d --delay    delay (usec)\n"
-	     "  -b --bpw      bits per word \n"
-	     "  -l --loop     loopback\n"
-	     "  -H --cpha     clock phase\n"
-	     "  -O --cpol     clock polarity\n"
-	     "  -L --lsb      least significant bit first\n"
-	     "  -C --cs-high  chip select active high\n"
-	     "  -3 --3wire    SI/SO signals shared\n");
-	exit(1);
 }
 
 int main(int argc, char *argv[])
