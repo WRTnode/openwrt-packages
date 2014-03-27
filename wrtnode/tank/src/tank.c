@@ -1,6 +1,6 @@
 /*
  * Spi pin to control motor rotation (using spidev driver)
- *
+ * Copyright (C) 2014 WRTnode machine team.
  * This program is free software; you can redistribute it and/or modify
  *
  * Cross-compile with cross-gcc -I/path/to/cross-kernel/include
