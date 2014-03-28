@@ -2,8 +2,8 @@
 	FileName	：main.c
 	Description	：The main function of uARM_driver.
 	Author		：SchumyHao
-	Version		：V03
-	Data		：2013.03.25
+	Version		：V04
+	Data		：2013.03.28
 */
 /* Uncomment next line if you want to debug the code. */
 #define DEBUG
@@ -13,14 +13,22 @@
 #include "uARM_driver.h"
 
 /* Define the const */
-#define HOST_UART_PORT 	(0)
-#define ARGC_MUN	(5)
+#define HOST_UART_PORT 		(0)
+#define ARGV_FLAG_o			(0x01)
+#define ARGV_FLAG_O			(0x02)
+#define ARGV_FLAG_r			(0x04)
+#define ARGV_FLAG_p			(0x08)
+#define IS_ARGV_FLAG(FLAG)	(((FLAG) == ARGV_FLAG_o) || \
+							((FLAG) == ARGV_FLAG_O) || \
+							((FLAG) == ARGV_FLAG_r) || \
+							((FLAG) == ARGV_FLAG_p))
+
+/* Functions Declaration*/
+int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys);
 
 /* Functions */
 int main(int argc, char* argv[]){
-	int tmp;
 	int BuffDeep = DEFAULT_BUFF_DEEP;
-	int Dest = DEFAULT_DEST;	//find one or five?
 	t_Coordinate CooSys;
 	t_uart UartConfig;
 	struct termios OldCfg;
@@ -29,70 +37,31 @@ int main(int argc, char* argv[]){
 	InitCoordinateSystem(&CooSys);
 	/* Initialize the UART */
 	InitUartStruct(&UartConfig);
-	/* Check the input arguments */
-	#ifdef DEBUG
-	int i;
-	for(i = 0; i < argc; i++){
-		printf("argv[%d]: %s\n",i,argv[i]);
-	}
-	#endif
-	if(argc == ARGC_MUN){
-		tmp = atoi(argv[1]);
-		if(IS_X_LOCATION(tmp)){
-			CooSys.X = tmp;
-		}
-		else{
-			perror("1st argument 'x' is wrong!\n");
-			return -1;
-		}
-		tmp = atoi(argv[2]);
-		if(IS_Y_LOCATION(tmp)){
-			CooSys.Y = tmp;
-		}
-		else{
-			perror("2nd argument 'y' is wrong!\n");
-			return -1;
-		}
-		tmp = atoi(argv[3]);
-		if(IS_H_LOCATION(tmp)){
-			CooSys.H = tmp;
-		}
-		else{
-			perror("3rd argument 'h' is wrong!\n");
-			return -1;
-		}
-		tmp = atoi(argv[4]);
-		if(IS_DESTINATION(tmp)){
-			Dest = tmp;
-		}
-		else{
-			perror("4th argument 'destination' is wrong!\n");
-			return -1;
-		}
-	}
-	else{
-		perror("Arguments number is wrong!\n");
+	/* Arguments process */
+	if(ProcessArguments(argc, argv[], &CooSys) < 0){
+		perror("Input arguments are wrong.\n");
 		return -1;
 	}
-
-	/* Change the coordinate from rectangular to polar. */
-	ShiftCoordinate(&CooSys);
-	#ifdef DEBUG
-	printf("X location is %d.\n",CooSys.X);
-	printf("Y location is %d.\n",CooSys.Y);
-	printf("Angle degree is %d.\n",CooSys.Angle);
-	printf("Radius length is %d.\n",CooSys.Radius);
-	#endif
+	if(CooSys.CooShiftEn){
+		/* Change the coordinate from rectangular to polar. */
+		ShiftCoordinate(&CooSys);
+		#ifdef DEBUG
+		printf("X location is %d.\n",CooSys.X);
+		printf("Y location is %d.\n",CooSys.Y);
+		printf("Angle degree is %d.\n",CooSys.Angle);
+		printf("Radius length is %d.\n",CooSys.Radius);
+		#endif
+	}
 	/* Generate the motion data */
 	pBuff = (char*)malloc(sizeof(char)*BUFFER_SIZE*BUFFER_DEEP);
 	if(pBuff == NULL){
 		perror("Memory allocated wrong.\n");
-		return -1;
+		return -2;
 	}
 	BuffDeep = GenerateMotion(&CooSys, Dest, pBuff);
-	if(BuffDeep == DEFAULT_BUFF_DEEP){
+	if(BuffDeep < 0){
 		perror("Motion generated wrong.\n");
-		return -1;
+		return -3;
 	}
 	#ifdef DEBUG
 	printf("BuffDeep is %d.\n",BuffDeep);
@@ -101,12 +70,12 @@ int main(int argc, char* argv[]){
 	UartConfig.Fd = OpenPort(HOST_UART_PORT);
 	if(UartConfig.Fd < 0){
 		perror("Can not open UART port.\n");	
-		return -1;
+		return -4;
 	}
 	UartConfig.pFp=fdopen(UartConfig.Fd,"w");
 	if(UartConfig.pFp == NULL){
 		perror("Can not open UART stream!\n");
-		return -1;
+		return -5;
 	}
 	//Change the buffer type to none.
 	setbuf(UartConfig.pFp, NULL);
@@ -119,12 +88,12 @@ int main(int argc, char* argv[]){
 	UartConfig.StopBits = STOP_BITS_1BIT;		
 	if(ConfigUart(&UartConfig, &OldCfg) < 0){
 		perror("Config UART error.\n");
-		return -1;
+		return -6;
 	}
 	/* Transmit data */
 	if(SendData(UartConfig.pFp, BuffDeep, pBuff) < 0){
 		perror("Send data error.\n");
-		return -1;
+		return -7;
 	}
 	/* Free the buff memory */
 	free(pBuff);
@@ -132,10 +101,188 @@ int main(int argc, char* argv[]){
 	/* Restore the UART config parameters */
 	if((tcsetattr(UartConfig.Fd, TCSANOW, &OldCfg)) != 0){
 		perror("Revert tty error.\n");
-		return -1;
+		return -8;
 	}
 	close(UartConfig.Fd);
 	fclose(UartConfig.pFp);
 	return 0;
 }
 
+int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys){
+	int i;
+	int tmp;
+	unsigned char Flag = 0;
+	#ifdef DEBUG
+	
+	for(i = 0; i < argc; i++){
+		printf("argv[%d]: %s\n",i,argv[i]);
+	}
+	#endif
+	for(i = 1; i < argc; i++){
+		if(*argv[i] == '-'){
+			switch(*(++argv[i])){
+			case 'o':
+				if(Flag & ARGV_FLAG_o){
+					printf("WARNING:  Got '-o' more than onec in arguments\n");
+				}
+				else{
+					tmp = atoi(argv[++i]);
+					if(IS_A_DEGREE(tmp)){
+						pCooSys->Angle = tmp;
+					}
+					else{
+						perror("Angle argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_R_LENGTH(tmp)){
+						pCooSys->Radius = tmp;
+					}
+					else{
+						perror("Radius argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_H_LOCATION(tmp)){
+						pCooSys->H = tmp;
+					}
+					else{
+						perror("Hight argument is wrong!\n");
+						return -1;
+					}
+					CooSys->CooShiftEn = DISABLE;
+					CooSys->DirectOutputEn = ENABLE;
+					Flag |= ARGV_FLAG_o;
+				}
+				break;
+			case 'O':
+				if(Flag & ARGV_FLAG_O){
+					printf("WARNING:  Got '-O' more than onec in arguments\n");
+				}
+				else{
+					tmp = atoi(argv[++i]);
+					if(IS_X_LOCATION(tmp)){
+						pCooSys->X = tmp;
+					}
+					else{
+						perror("X argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_Y_LOCATION(tmp)){
+						pCooSys->Y = tmp;
+					}
+					else{
+						perror("Y argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_H_LOCATION(tmp)){
+						pCooSys->H = tmp;
+					}
+					else{
+						perror("Hight argument is wrong!\n");
+						return -1;
+					}
+					CooSys->CooShiftEn = ENABLE;
+					CooSys->DirectOutputEn = ENABLE;
+					Flag |= ARGV_FLAG_O;
+				}
+				break;
+			case 'r':
+				if(Flag & ARGV_FLAG_r){
+					printf("WARNING:  Got '-r' more than onec in arguments\n");
+				}
+				else{
+					tmp = atoi(argv[++i]);
+					if(IS_X_LOCATION(tmp)){
+						pCooSys->X = tmp;
+					}
+					else{
+						perror("X argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_Y_LOCATION(tmp)){
+						pCooSys->Y = tmp;
+					}
+					else{
+						perror("Y argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_H_LOCATION(tmp)){
+						pCooSys->H = tmp;
+					}
+					else{
+						perror("Hight argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_DESTINATION(tmp)){
+						pCooSys->Dest = tmp;
+					}
+					else{
+						perror("Destination argument is wrong!\n");
+						return -1;
+					}
+					CooSys->CooShiftEn = ENABLE;
+					CooSys->DirectOutputEn = DISABLE;
+					Flag |= ARGV_FLAG_r;
+				}
+				break;
+			case 'p':
+				if(Flag & ARGV_FLAG_p){
+					printf("WARNING:  Got '-p' more than onec in arguments\n");
+				}
+				else{
+					tmp = atoi(argv[++i]);
+					if(IS_A_DEGREE(tmp)){
+						pCooSys->Angle = tmp;
+					}
+					else{
+						perror("Angle argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_R_LENGTH(tmp)){
+						pCooSys->Radius = tmp;
+					}
+					else{
+						perror("Radius argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_H_LOCATION(tmp)){
+						pCooSys->H = tmp;
+					}
+					else{
+						perror("Hight argument is wrong!\n");
+						return -1;
+					}
+					tmp = atoi(argv[++i]);
+					if(IS_DESTINATION(tmp)){
+						pCooSys->Dest = tmp;
+					}
+					else{
+						perror("Destination argument is wrong!\n");
+						return -1;
+					}
+					CooSys->CooShiftEn = DISABLE;
+					CooSys->DirectOutputEn = DISABLE;
+					Flag |= ARGV_FLAG_p;
+				}
+				break;
+			default:
+				printf("WARNING:  Got redundant arguments\n");
+			}
+		}
+	}
+	if(IS_ARGV_FLAG(Flag)){
+		return 0;
+	}
+	else{
+		perror("Arguments are wrong!\n");
+		return -1;
+	}
+}

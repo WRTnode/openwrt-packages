@@ -2,8 +2,8 @@
 	FileName	：uARM_driver.h
 	Description	：uARM驱动头文件
 	Author		：SchumyHao
-	Version		：V03
-	Data		：2013.03.26
+	Version		：V04
+	Data		：2013.03.28
 */
 #ifndef __UARM_DRIVER_H__
 #define __UARM_DRIVER_H__
@@ -27,6 +27,8 @@
 //#define GO_WITH_PARABOLA
 /* Max pick up retry times */
 #define PICK_RETRY_TIMES	(5)
+/* Coin's thickness */
+#define COIN_THICKNESS	(5)
 /* Frame delay time */
 #define FRAME_DELAY_TIME	(20000)
 /* Parameter offset */
@@ -70,13 +72,21 @@
 				((MOTION) == MOTION_PICK) || \
 				((MOTION) == MOTION_NONE))
 
+typedef enum{
+	DISABLE = 0,
+	ENABLE = !DISABLE
+}FunctionalState;
+#define IS_FUNCTIONAL_STATE(STATE) (((STATE) == DISABLE) || ((STATE) == ENABLE))
 
 typedef struct{
+	FunctionalState CooShiftEn;
+	FunctionalState DirectOutputEn;
 	int X;
 	int Y;
 	int H;
 	int Angle;
 	int Radius;
+	int Dest;
 }t_Coordinate;
 /* X coordinate */
 #define DEFAULT_X_LOCATION	(0)

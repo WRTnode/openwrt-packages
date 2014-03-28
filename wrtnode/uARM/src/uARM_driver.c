@@ -2,8 +2,8 @@
 	FileName	：uARM_driver.c
 	Description	：Source code of uARM driver
 	Author		：SchumyHao
-	Version		：V03
-	Data		：2013.03.26
+	Version		：V04
+	Data		：2013.03.28
 */
 /* Uncomment next line if you want to debug the code. */
 #define DEBUG
@@ -40,11 +40,14 @@ int SendData(FILE* const pFp, int const BuffDeep, const char* pBuff){
 
 /* Coordinate initialize function */
 int InitCoordinateSystem(t_Coordinate* pCooSys){
+	pCooSys->CooShiftEn = DISABLE;
+	pCooSys->DirectOutputEn = DISABLE;
 	pCooSys->X = DEFAULT_X_LOCATION;
 	pCooSys->Y = DEFAULT_Y_LOCATION;
 	pCooSys->H = DEFAULT_H_LOCATION;
 	pCooSys->Angle = DEFAULT_A_DEGREE;
 	pCooSys->Radius = DEFAULT_R_LENGTH;
+	pCooSys->Dest = DEFAULT_DEST;
 	return 0;
 }
 
@@ -57,6 +60,7 @@ int ShiftCoordinate(t_Coordinate* pCooSys){
 	pCooSys->Radius = (int)sqrt((double)((DistX*DistX)+(DistY*DistY)));
 	pCooSys->Angle = (int)((DistY)?(RAD2ANG(atan2((double)DistX,(double)DistY))): \
 			((DistX>0)?MAX_A_DEGREE:((DistX<0)?MIN_A_DEGREE:DEFAULT_A_DEGREE)));
+	pCooSys->CooShiftEn = DISABLE;
 	return 0;
 }
 
@@ -66,76 +70,96 @@ int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char* pBuff){
 	assert(IS_R_LENGTH(pCooSys->Radius));
 	assert(IS_H_LOCATION(pCooSys->H));
 
-	#ifdef GO_WITH_LINE
 	t_Move Move;
 	int BuffDeep = 0;
 	int i;
-	
-	/* Go to pick up the coin */
-	Move.DestAngle = pCooSys->Angle;
-	Move.DestRadius = pCooSys->Radius;
-	Move.DestHight = pCooSys->H;
-	Move.CurrAngle = DEFAULT_A_DEGREE;
-	Move.CurrRadius = DEFAULT_R_LENGTH;
-	Move.CurrHight = DEFAULT_H_LOCATION;
-	BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
-	/* Pick up the coin */
-	for(i=PICK_RETRY_TIMES; i>0; i--){
-		BuffDeep = HandleArm(MOTION_PICK, \
-			(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+	if(pCooSys->DirectOutputEn){
+		/* Move to input A&R */
+		*pBuff++ = FRAME_HEADER_H;
+		*pBuff++ = FRAME_HEADER_L;
+		*pBuff++ = HI_BYTE(pCooSys->Angle);
+		*pBuff++ = LO_BYTE(pCooSys->Angle);
+		*pBuff++ = HI_BYTE(pCooSys->Radius);
+		*pBuff++ = LO_BYTE(pCooSys->Radius);
+		*pBuff++ = MOTION_NONE;
+		BuffDeep++;
+		/* Set uArm to input hight */
+		Move.DestAngle = pCooSys->Angle;
+		Move.DestRadius = pCooSys->Radius;
+		Move.DestHight = DEFAULT_H_LOCATION + pCooSys->H;
+		Move.CurrAngle = pCooSys->Angle;
+		Move.CurrRadius = pCooSys->Radius;
+		Move.CurrHight = DEFAULT_H_LOCATION;
+		BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
 	}
-	/* Go to coin collection place */
-	switch(Dest){
-	case DEST_ONE:
-		Move.DestAngle = DEST_ONE_A;
-		Move.DestRadius = DEST_ONE_R;
-		Move.DestHight = DEST_ONE_H;
-		break;
-	case DEST_FIVE:
-		Move.DestAngle = DEST_FIVE_A;
-		Move.DestRadius = DEST_FIVE_R;
-		Move.DestHight = DEST_FIVE_H;
-		break;
-	case DEFAULT_DEST:
-	default:
-		Move.DestAngle = DEFAULT_A_DEGREE;
-		Move.DestRadius = DEFAULT_R_LENGTH;
-		Move.DestHight = DEFAULT_H_LOCATION;
-	}
-	Move.CurrAngle = pCooSys->Angle;
-	Move.CurrRadius = pCooSys->Radius;
-	Move.CurrHight = pCooSys->H;
-	BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
-	/* Put down the coin */
-	BuffDeep = HandleArm(MOTION_RELEASE, \
-		(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
-	/* Go to initial place */
-	switch(Dest){
-	case DEST_ONE:
-		Move.CurrAngle = DEST_ONE_A;
-		Move.CurrRadius = DEST_ONE_R;
-		Move.CurrHight = DEST_ONE_H;
-		break;
-	case DEST_FIVE:
-		Move.CurrAngle = DEST_FIVE_A;
-		Move.CurrRadius = DEST_FIVE_R;
-		Move.CurrHight = DEST_FIVE_H;
-		break;
-	case DEFAULT_DEST:
-	default:
+	else{
+		/* Go to pick up the coin */
+		Move.DestAngle = pCooSys->Angle;
+		Move.DestRadius = pCooSys->Radius;
+		Move.DestHight = pCooSys->H;
 		Move.CurrAngle = DEFAULT_A_DEGREE;
 		Move.CurrRadius = DEFAULT_R_LENGTH;
 		Move.CurrHight = DEFAULT_H_LOCATION;
+		BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+		/* Pick up the coin */
+		for(i=PICK_RETRY_TIMES; i>0; i--){
+			BuffDeep = HandleArm(MOTION_PICK, \
+				(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+		}
+		/* Go to coin collection place */
+		switch(Dest){
+		case DEST_ONE:
+			Move.DestAngle = DEST_ONE_A;
+			Move.DestRadius = DEST_ONE_R;
+			Move.DestHight = DEST_ONE_H;
+			break;
+		case DEST_FIVE:
+			Move.DestAngle = DEST_FIVE_A;
+			Move.DestRadius = DEST_FIVE_R;
+			Move.DestHight = DEST_FIVE_H;
+			break;
+		case DEFAULT_DEST:
+		default:
+			Move.DestAngle = DEFAULT_A_DEGREE;
+			Move.DestRadius = DEFAULT_R_LENGTH;
+			Move.DestHight = DEFAULT_H_LOCATION;
+		}
+		Move.CurrAngle = pCooSys->Angle;
+		Move.CurrRadius = pCooSys->Radius;
+		Move.CurrHight = pCooSys->H;
+		BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+		/* Put down the coin */
+		BuffDeep = HandleArm(MOTION_RELEASE, \
+			(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+		/* Go to initial place */
+		switch(Dest){
+		case DEST_ONE:
+			Move.CurrAngle = DEST_ONE_A;
+			Move.CurrRadius = DEST_ONE_R;
+			Move.CurrHight = DEST_ONE_H;
+			break;
+		case DEST_FIVE:
+			Move.CurrAngle = DEST_FIVE_A;
+			Move.CurrRadius = DEST_FIVE_R;
+			Move.CurrHight = DEST_FIVE_H;
+			break;
+		case DEFAULT_DEST:
+		default:
+			Move.CurrAngle = DEFAULT_A_DEGREE;
+			Move.CurrRadius = DEFAULT_R_LENGTH;
+			Move.CurrHight = DEFAULT_H_LOCATION;
+		}
+		Move.DestAngle = DEFAULT_A_DEGREE;
+		Move.DestRadius = DEFAULT_R_LENGTH;
+		Move.DestHight = DEFAULT_H_LOCATION;
+		BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
 	}
-	Move.DestAngle = DEFAULT_A_DEGREE;
-	Move.DestRadius = DEFAULT_R_LENGTH;
-	Move.DestHight = DEFAULT_H_LOCATION;
-	BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
-	#endif
-	#ifdef GO_WITH_PARABOLA
-	//TODO:go twith parabola.
-	#endif
-	return BuffDeep;
+	if(BuffDeep <= BUFFER_DEEP)
+		return BuffDeep;
+	else{
+		perror("Buffer is overflowed.\n");
+		return -1
+	}
 }
 
 /*  Arm move function */
@@ -147,6 +171,7 @@ int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep){
 	assert(IS_R_LENGTH(pMotion->CurrRadius));
 	assert(IS_H_LOCATION(pMotion->CurrHight));
 
+	#ifdef GO_WITH_LINE
 	int TempA,TempR,TempH;
 	int MaxLoop;
 	int StepA,StepR,StepH;
@@ -154,7 +179,9 @@ int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep){
 	//Caculate Angle、Radius、Hight distance
 	TempA = pMotion->DestAngle - pMotion->CurrAngle;
 	TempR = pMotion->DestRadius - pMotion->CurrRadius;
-	TempH = pMotion->DestHight - pMotion->CurrHight;
+	TempH = ((pMotion->CurrHight - pMotion->DestHight) > COIN_THICKNESS)? \
+		(pMotion->DestHight - pMotion->CurrHight + COIN_THICKNESS): \
+		(pMotion->DestHight - pMotion->CurrHight);
 	//Caculate max loop cycle number
 	MaxLoop = MAX2(abs(TempA),(MAX2(abs(TempR),abs(TempH))));
 	//Caculate step
@@ -197,6 +224,22 @@ int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep){
 			((TempH>0)?MOTION_H_UP:MOTION_NONE);
 		BuffDeep++;
 	}
+	if((pMotion->CurrHight - pMotion->DestHight) > COIN_THICKNESS){
+		for(i=COIN_THICKNESS; i>0; i--){
+			*pBuff++ = FRAME_HEADER_H;
+			*pBuff++ = FRAME_HEADER_L;
+			*pBuff++ = HI_BYTE(pMotion->CurrAngle);
+			*pBuff++ = LO_BYTE(pMotion->CurrAngle);
+			*pBuff++ = HI_BYTE(pMotion->CurrRadius);
+			*pBuff++ = LO_BYTE(pMotion->CurrRadius);
+			*pBuff++ = MOTION_H_DOWN;
+			BuffDeep++;
+		}
+	}
+	#endif
+	#ifdef GO_WITH_PARABOLA
+	//TODO:go twith parabola.
+	#endif
 	return BuffDeep;
 }
 
