@@ -13,18 +13,17 @@
 #include "uARM_driver.h"
 
 /* Define the const */
-#define HOST_UART_PORT 		(0)
-#define ARGV_FLAG_o			(0x01)
-#define ARGV_FLAG_O			(0x02)
-#define ARGV_FLAG_r			(0x04)
-#define ARGV_FLAG_p			(0x08)
-#define IS_ARGV_FLAG(FLAG)	(((FLAG) == ARGV_FLAG_o) || \
-							((FLAG) == ARGV_FLAG_O) || \
-							((FLAG) == ARGV_FLAG_r) || \
-							((FLAG) == ARGV_FLAG_p))
-
+#define HOST_UART_PORT       (0)
+#define ARGV_FLAG_o          (0x01)
+#define ARGV_FLAG_O          (0x02)
+#define ARGV_FLAG_r          (0x04)
+#define ARGV_FLAG_p          (0x08)
+#define IS_ARGV_FLAG(FLAG)   (((FLAG) == ARGV_FLAG_o) || \
+                             ((FLAG) == ARGV_FLAG_O) || \
+                             ((FLAG) == ARGV_FLAG_r) || \
+                             ((FLAG) == ARGV_FLAG_p))
 /* Functions Declaration*/
-int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys);
+int ProcessArguments(int argc, char** argv, t_Coordinate* pCooSys);
 
 /* Functions */
 int main(int argc, char* argv[]){
@@ -38,7 +37,7 @@ int main(int argc, char* argv[]){
 	/* Initialize the UART */
 	InitUartStruct(&UartConfig);
 	/* Arguments process */
-	if(ProcessArguments(argc, argv[], &CooSys) < 0){
+	if(ProcessArguments(argc, argv, &CooSys) < 0){
 		perror("Input arguments are wrong.\n");
 		return -1;
 	}
@@ -58,7 +57,7 @@ int main(int argc, char* argv[]){
 		perror("Memory allocated wrong.\n");
 		return -2;
 	}
-	BuffDeep = GenerateMotion(&CooSys, Dest, pBuff);
+	BuffDeep = GenerateMotion(&CooSys, pBuff);
 	if(BuffDeep < 0){
 		perror("Motion generated wrong.\n");
 		return -3;
@@ -108,7 +107,7 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys){
+int ProcessArguments(int argc, char** argv, t_Coordinate* pCooSys){
 	int i;
 	int tmp;
 	unsigned char Flag = 0;
@@ -150,8 +149,8 @@ int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys){
 						perror("Hight argument is wrong!\n");
 						return -1;
 					}
-					CooSys->CooShiftEn = DISABLE;
-					CooSys->DirectOutputEn = ENABLE;
+					pCooSys->CooShiftEn = DISABLE;
+					pCooSys->DirectOutputEn = ENABLE;
 					Flag |= ARGV_FLAG_o;
 				}
 				break;
@@ -184,8 +183,8 @@ int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys){
 						perror("Hight argument is wrong!\n");
 						return -1;
 					}
-					CooSys->CooShiftEn = ENABLE;
-					CooSys->DirectOutputEn = ENABLE;
+					pCooSys->CooShiftEn = ENABLE;
+					pCooSys->DirectOutputEn = ENABLE;
 					Flag |= ARGV_FLAG_O;
 				}
 				break;
@@ -226,8 +225,8 @@ int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys){
 						perror("Destination argument is wrong!\n");
 						return -1;
 					}
-					CooSys->CooShiftEn = ENABLE;
-					CooSys->DirectOutputEn = DISABLE;
+					pCooSys->CooShiftEn = ENABLE;
+					pCooSys->DirectOutputEn = DISABLE;
 					Flag |= ARGV_FLAG_r;
 				}
 				break;
@@ -268,8 +267,8 @@ int ProcessArguments(int argc, char* argv[], t_Coordinate* pCooSys){
 						perror("Destination argument is wrong!\n");
 						return -1;
 					}
-					CooSys->CooShiftEn = DISABLE;
-					CooSys->DirectOutputEn = DISABLE;
+					pCooSys->CooShiftEn = DISABLE;
+					pCooSys->DirectOutputEn = DISABLE;
 					Flag |= ARGV_FLAG_p;
 				}
 				break;

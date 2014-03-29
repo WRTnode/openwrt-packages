@@ -65,10 +65,11 @@ int ShiftCoordinate(t_Coordinate* pCooSys){
 }
 
 /* Motion data Generation function */
-int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char* pBuff){
+int GenerateMotion(t_Coordinate* pCooSys, char* pBuff){
 	assert(IS_A_DEGREE(pCooSys->Angle));
 	assert(IS_R_LENGTH(pCooSys->Radius));
 	assert(IS_H_LOCATION(pCooSys->H));
+	assert(IS_DESTINATION(pCooSys->Dest));
 
 	t_Move Move;
 	int BuffDeep = 0;
@@ -86,11 +87,11 @@ int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char* pBuff){
 		/* Set uArm to input hight */
 		Move.DestAngle = pCooSys->Angle;
 		Move.DestRadius = pCooSys->Radius;
-		Move.DestHight = DEFAULT_H_LOCATION + pCooSys->H;
+		Move.DestHight = pCooSys->H;
 		Move.CurrAngle = pCooSys->Angle;
 		Move.CurrRadius = pCooSys->Radius;
-		Move.CurrHight = DEFAULT_H_LOCATION;
-		BuffDeep = MoveArm(&Move, (pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
+		Move.CurrHight = 0;
+		BuffDeep = MoveArm(&Move, pBuff, BuffDeep);
 	}
 	else{
 		/* Go to pick up the coin */
@@ -107,7 +108,7 @@ int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char* pBuff){
 				(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
 		}
 		/* Go to coin collection place */
-		switch(Dest){
+		switch(pCooSys->Dest){
 		case DEST_ONE:
 			Move.DestAngle = DEST_ONE_A;
 			Move.DestRadius = DEST_ONE_R;
@@ -132,7 +133,7 @@ int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char* pBuff){
 		BuffDeep = HandleArm(MOTION_RELEASE, \
 			(pBuff+(BuffDeep*BUFFER_SIZE)), BuffDeep);
 		/* Go to initial place */
-		switch(Dest){
+		switch(pCooSys->Dest){
 		case DEST_ONE:
 			Move.CurrAngle = DEST_ONE_A;
 			Move.CurrRadius = DEST_ONE_R;
@@ -158,7 +159,7 @@ int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char* pBuff){
 		return BuffDeep;
 	else{
 		perror("Buffer is overflowed.\n");
-		return -1
+		return -1;
 	}
 }
 
@@ -210,9 +211,6 @@ int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep){
 				0:(SINGNAL(TempR));
 		pMotion->CurrHight += ((i%StepH) || (!TempH))? \
 				0:(SINGNAL(TempH));
-		TempA -= ((i%StepA)||(!TempA))?0:(SINGNAL(TempA));
-		TempR -= ((i%StepR)||(!TempR))?0:(SINGNAL(TempR));
-		TempH -= ((i%StepH)||(!TempH))?0:(SINGNAL(TempH));
 
 		*pBuff++ = FRAME_HEADER_H;
 		*pBuff++ = FRAME_HEADER_L;
@@ -222,9 +220,13 @@ int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep){
 		*pBuff++ = LO_BYTE(pMotion->CurrRadius);
 		*pBuff++ = (TempH<0)?MOTION_H_DOWN: \
 			((TempH>0)?MOTION_H_UP:MOTION_NONE);
+
+		TempA -= ((i%StepA)||(!TempA))?0:(SINGNAL(TempA));
+		TempR -= ((i%StepR)||(!TempR))?0:(SINGNAL(TempR));
+		TempH -= ((i%StepH)||(!TempH))?0:(SINGNAL(TempH));
 		BuffDeep++;
 	}
-	if((pMotion->CurrHight - pMotion->DestHight) > COIN_THICKNESS){
+	if((pMotion->CurrHight - pMotion->DestHight) == COIN_THICKNESS){
 		for(i=COIN_THICKNESS; i>0; i--){
 			*pBuff++ = FRAME_HEADER_H;
 			*pBuff++ = FRAME_HEADER_L;

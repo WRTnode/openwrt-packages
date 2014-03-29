@@ -1,6 +1,6 @@
 /*
 	FileName	：uARM_driver.h
-	Description	：uARM驱动头文件
+	Description	：source code of uARM_driver
 	Author		：SchumyHao
 	Version		：V04
 	Data		：2013.03.28
@@ -28,7 +28,7 @@
 /* Max pick up retry times */
 #define PICK_RETRY_TIMES	(5)
 /* Coin's thickness */
-#define COIN_THICKNESS	(5)
+#define COIN_THICKNESS		(5)
 /* Frame delay time */
 #define FRAME_DELAY_TIME	(20000)
 /* Parameter offset */
@@ -90,13 +90,13 @@ typedef struct{
 }t_Coordinate;
 /* X coordinate */
 #define DEFAULT_X_LOCATION	(0)
-#define MAX_X_LOCATION		(100)
-#define MIN_X_LOCATION		(-100)
+#define MAX_X_LOCATION		(150)
+#define MIN_X_LOCATION		(-150)
 #define IS_X_LOCATION(X)	(((X) >= MIN_X_LOCATION) && \
 				((X) <= MAX_X_LOCATION))
 /* Y coordinate */
 #define DEFAULT_Y_LOCATION	(0)
-#define MAX_Y_LOCATION		(50)
+#define MAX_Y_LOCATION		(200)
 #define MIN_Y_LOCATION		(0)
 #define IS_Y_LOCATION(Y)	(((Y) >= MIN_Y_LOCATION) && \
 				((Y) <= MAX_Y_LOCATION))
@@ -144,7 +144,7 @@ int InitCoordinateSystem(t_Coordinate* pCooSys);
 /* Change the coordinate from rectangular to polar */
 int ShiftCoordinate(t_Coordinate* pCooSys);
 /* Motion data Generation function */
-int GenerateMotion(t_Coordinate* pCooSys, const int Dest, char *pBuff);
+int GenerateMotion(t_Coordinate* pCooSys, char *pBuff);
 /* Arm move function */
 int MoveArm(t_Move* pMotion, char* pBuff, int BuffDeep);
 /* Arm handle function */
