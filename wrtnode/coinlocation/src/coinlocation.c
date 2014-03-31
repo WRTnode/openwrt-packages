@@ -7,7 +7,7 @@
 */
 
 /* Uncomment next line if you want to debug the code. */
-#define DEBUG
+//#define DEBUG
 
 /* Include files */
 #include "coinlocation.h"
@@ -35,22 +35,30 @@ void PointPrint(char* pPointName, t_Point* pPoint){
 /* Draw horizon line */
 int HorizonLineDraw(t_Line* pLine){
 	t_Point* pPoint = pLine->pPoint;
+	int dUarmX = pLine->EndPoint.UarmX - pLine->StartPoint.UarmX;
+	float dPixelX = (float)(pLine->EndPoint.PixelX-pLine->StartPoint.PixelX)/dUarmX;
+	float dPixelY = (float)(pLine->EndPoint.PixelY-pLine->StartPoint.PixelY)/dUarmX;
 	if(pLine->StartPoint.UarmY == pLine->EndPoint.UarmY){
 		PointDraw(pPoint, pLine->StartPoint.UarmX, \
 				pLine->StartPoint.UarmY, \
 				pLine->StartPoint.PixelX, \
 				pLine->StartPoint.PixelY);
 		pLine->PointNumber++;
-		while(pPoint->UarmX < pLine->EndPoint.UarmX){
+		while(pLine->EndPoint.UarmX > pPoint->UarmX){
 			pPoint ++;
 			CopyPoint(pPoint, pPoint-1);
-			pPoint->PixelX += (pLine->EndPoint.PixelX - pPoint->PixelX)/ \
-				(pLine->EndPoint.UarmX - pPoint->UarmX);
-			pPoint->PixelY += (pLine->EndPoint.PixelY - pPoint->PixelY)/ \
-				(pLine->EndPoint.UarmX - pPoint->UarmX);
+			pPoint->PixelX = (int)(pLine->StartPoint.PixelX + \
+						dPixelX * pLine->PointNumber);
+			pPoint->PixelY = (int)(pLine->StartPoint.PixelY + \
+						dPixelY * pLine->PointNumber);
 			pPoint->UarmX++;
 			pLine->PointNumber++;
 		}
+		#ifdef DEBUG
+		PointPrint("Start point", &(pLine->StartPoint));
+		PointPrint("End point", &(pLine->EndPoint));
+		printf("Point number = %d\n",pLine->PointNumber);
+		#endif
 		return 0;
 	}
 	else{
@@ -61,6 +69,12 @@ int HorizonLineDraw(t_Line* pLine){
 /* Draw rectengular area */
 int RectengularAreaDraw(t_Plane* pArea){
 	t_Line* pLine = pArea->pLine;
+	int dUarmLeftY = pArea->TopLeftPoint.UarmY - pArea->BottomLeftPoint.UarmY;
+	int dUarmRightY = pArea->TopRightPoint.UarmY - pArea->BottomRightPoint.UarmY;
+	float dPixelLeftX = (float)(pArea->TopLeftPoint.PixelX-pArea->BottomLeftPoint.PixelX)/dUarmLeftY;
+	float dPixelLeftY = (float)(pArea->TopLeftPoint.PixelY-pArea->BottomLeftPoint.PixelY)/dUarmLeftY;
+	float dPixelRightX = (float)(pArea->TopRightPoint.PixelX-pArea->BottomRightPoint.PixelX)/dUarmRightY;
+	float dPixelRightY = (float)(pArea->TopRightPoint.PixelY-pArea->BottomRightPoint.PixelY)/dUarmRightY;
 	/*
 	t_Point HighestPoint;
 	t_Point LowestPoint;
@@ -149,16 +163,16 @@ int RectengularAreaDraw(t_Plane* pArea){
 		pLine++;
 		CopyLine(pLine, pLine-1);
 		/* Update next line's start point. */
-		pLine->StartPoint.PixelX += (pArea->TopLeftPoint.PixelX - pLine->StartPoint.PixelX)/ \
-			(pArea->TopLeftPoint.UarmY - pLine->StartPoint.UarmY);
-		pLine->StartPoint.PixelY += (pArea->TopLeftPoint.PixelY - pLine->StartPoint.PixelY)/ \
-			(pArea->TopLeftPoint.UarmY - pLine->StartPoint.UarmY);
+		pLine->StartPoint.PixelX = (int)(pArea->BottomLeftPoint.PixelX + \
+						dPixelLeftX * pArea->LineNumber);
+		pLine->StartPoint.PixelY = (int)(pArea->BottomLeftPoint.PixelY + \
+						dPixelLeftY * pArea->LineNumber);
 		pLine->StartPoint.UarmY++;
 		/* Update next line's end point. */
-		pLine->EndPoint.PixelX += (pArea->TopRightPoint.PixelX - pLine->EndPoint.PixelX)/ \
-			(pArea->TopRightPoint.UarmY - pLine->EndPoint.UarmY);
-		pLine->EndPoint.PixelY += (pArea->TopRightPoint.PixelY - pLine->EndPoint.PixelY)/ \
-			(pArea->TopRightPoint.UarmY - pLine->EndPoint.UarmY);
+		pLine->EndPoint.PixelX = (int)(pArea->BottomRightPoint.PixelX + \
+						dPixelRightX * pArea->LineNumber);
+		pLine->EndPoint.PixelY = (int)(pArea->BottomRightPoint.PixelY + \
+						dPixelRightY * pArea->LineNumber);
 		pLine->EndPoint.UarmY++;
 		/* Update next line's pPoint. */
 		pLine->pPoint += pLine->PointNumber;

@@ -7,7 +7,7 @@
 */
 
 /* Uncomment next line if you want to debug the code. */
-#define DEBUG
+//#define DEBUG
 
 /* Include files */
 #include <stdio.h>
@@ -60,14 +60,14 @@ int main(int argc, char* argv[]){
 		return -1;
 	}
 	pWorkArea->pLine = \
-		(t_Line*)malloc(sizeof(t_Line)*(TOP_LEFT_UARM_Y-BOTTOM_LEFT_UARM_Y));
+		(t_Line*)malloc(sizeof(t_Line)*(TOP_LEFT_UARM_Y-BOTTOM_LEFT_UARM_Y+1));
 	if(pWorkArea->pLine == NULL){
 		perror("Memory allocated wrong.\n");
 		return -1;
 	}
 	pWorkArea->pLine->pPoint = \
-		(t_Point*)malloc(sizeof(t_Point)*(TOP_LEFT_UARM_Y-BOTTOM_LEFT_UARM_Y) \
-										*(BOTTOM_RIGHT_UARM_X-BOTTOM_LEFT_UARM_X));
+		(t_Point*)malloc(sizeof(t_Point)*(TOP_LEFT_UARM_Y-BOTTOM_LEFT_UARM_Y+1) \
+										*(BOTTOM_RIGHT_UARM_X-BOTTOM_LEFT_UARM_X+1));
 	if(pWorkArea->pLine->pPoint == NULL){
 		perror("Memory allocated wrong.\n");
 		return -1;
