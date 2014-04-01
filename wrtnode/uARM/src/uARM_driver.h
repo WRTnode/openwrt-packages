@@ -42,7 +42,7 @@
 #define DEFAULT_BUFF_DEEP	(0)
 /* uArm's location define */
 #define UARM_X_LOCATION		(0)
-#define UARM_Y_LOCATION		(-10)
+#define UARM_Y_LOCATION		(-94)
 /* Coin destination define */
 #define DEFAULT_DEST		(0)
 #define DEST_ONE		(-1)

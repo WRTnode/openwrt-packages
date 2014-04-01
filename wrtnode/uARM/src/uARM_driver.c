@@ -6,7 +6,7 @@
 	Data		：2013.03.28
 */
 /* Uncomment next line if you want to debug the code. */
-#define DEBUG
+//#define DEBUG
 
 /* Include files */
 #include "uARM_driver.h"
@@ -57,8 +57,9 @@ int ShiftCoordinate(t_Coordinate* pCooSys){
 	assert(IS_Y_LOCATION(pCooSys->Y));
 	int DistX = pCooSys->X - UARM_X_LOCATION;
 	int DistY = pCooSys->Y - UARM_Y_LOCATION;
-	pCooSys->Radius = (int)sqrt((double)((DistX*DistX)+(DistY*DistY)));
-	pCooSys->Angle = (int)((DistY)?(RAD2ANG(atan2((double)DistX,(double)DistY))): \
+	pCooSys->Radius = (int)sqrt((double)((DistX*DistX)+(DistY*DistY))) - \
+		(int)sqrt((double)((UARM_X_LOCATION*UARM_X_LOCATION)+(UARM_Y_LOCATION*UARM_Y_LOCATION)));
+	pCooSys->Angle = (int)((DistY)?(2*RAD2ANG(atan2((double)DistX,(double)DistY))): \
 			((DistX>0)?MAX_A_DEGREE:((DistX<0)?MIN_A_DEGREE:DEFAULT_A_DEGREE)));
 	pCooSys->CooShiftEn = DISABLE;
 	return 0;
