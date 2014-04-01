@@ -20,9 +20,8 @@ include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
 
 
-define Package/polarssl/Default/description
-The aim of the PolarSSL project is to provide a quality, open-source
-cryptographic library written in C and targeted at embedded systems.
+define Package/opencv/Default/description
+the Open Source Computer Vision Library for linux
 endef
 
 define Package/opencv
@@ -37,7 +36,7 @@ PKG_INSTALL:=1
 
 CMAKE_OPTIONS += \
 	-DCMAKE_BUILD_TYPE:String="Release" \
-	-DUSE_SHARED_POLARSSL_LIBRARY:Bool=ON \
+	-DUSE_SHARED_OPENCV_LIBRARY:Bool=ON \
 
 define Package/opencv/install
 	$(INSTALL_DIR) $(1)/usr/include
