@@ -19,11 +19,6 @@ PKG_MD5SUM:=50cc1433b3654074206f5b3dbfd49848
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/cmake.mk
 
-#define Package/polarssl/Default
- # SUBMENU:=SSL
-  #TITLE:=Embedded SSL
-  #URL:=http://polarssl.org/
-#endef
 
 define Package/polarssl/Default/description
 The aim of the PolarSSL project is to provide a quality, open-source
@@ -37,15 +32,6 @@ define Package/opencv
   TITLE:= opencv-2.4.8
 endef
 
-#define Package/libpolarssl/description
-#$(call Package/polarssl/Default/description)
-#This package contains the PolarSSL library.
-#endef
-
-#define Package/polarssl-progs/description
-#$(call Package/polarssl/Default/description)
-#This package contains the PolarSSL programs.
-#endef
 
 PKG_INSTALL:=1
 
