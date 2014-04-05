@@ -15,45 +15,45 @@
 //TODO:Now, only can input rectengular working area.
 
 /* Bottom left  define */
-#define BOTTOM_LEFT_UARM_X			(-100)
-#define BOTTOM_LEFT_UARM_Y			(10)
-#define BOTTOM_LEFT_MIN_PIXEL_X		(0)
+#define BOTTOM_LEFT_UARM_X			(-72)
+#define BOTTOM_LEFT_UARM_Y			(15)
 #define BOTTOM_LEFT_MIN_PIXEL_Y		(0)
-#define BOTTOM_LEFT_MAX_PIXEL_X		(100)
+#define BOTTOM_LEFT_MIN_PIXEL_X		(0)
 #define BOTTOM_LEFT_MAX_PIXEL_Y		(100)
+#define BOTTOM_LEFT_MAX_PIXEL_X		(100)
 #define IS_BOTTOM_LEFT_PIXEL_X(X)		(((X) <= BOTTOM_LEFT_MAX_PIXEL_X) && \
 										((X) >= BOTTOM_LEFT_MIN_PIXEL_X))
 #define IS_BOTTOM_LEFT_PIXEL_Y(Y)		(((Y) <= BOTTOM_LEFT_MAX_PIXEL_Y) && \
 										((Y) >= BOTTOM_LEFT_MIN_PIXEL_Y))
 /* Top left define */
-#define TOP_LEFT_UARM_X			(-100)
-#define TOP_LEFT_UARM_Y			(100)
+#define TOP_LEFT_UARM_X			(-72)
+#define TOP_LEFT_UARM_Y			(181)
+#define TOP_LEFT_MIN_PIXEL_Y		(540)
 #define TOP_LEFT_MIN_PIXEL_X		(0)
-#define TOP_LEFT_MIN_PIXEL_Y		(380)
+#define TOP_LEFT_MAX_PIXEL_Y		(640)
 #define TOP_LEFT_MAX_PIXEL_X		(100)
-#define TOP_LEFT_MAX_PIXEL_Y		(480)
 #define IS_TOP_LEFT_PIXEL_X(X)		(((X) <= TOP_LEFT_MAX_PIXEL_X) && \
 									((X) >= TOP_LEFT_MIN_PIXEL_X))
 #define IS_TOP_LEFT_PIXEL_Y(Y)		(((Y) <= TOP_LEFT_MAX_PIXEL_Y) && \
 									((Y) >= TOP_LEFT_MIN_PIXEL_Y))
 /* Bottom right  define */
-#define BOTTOM_RIGHT_UARM_X			(100)
-#define BOTTOM_RIGHT_UARM_Y			(10)
-#define BOTTOM_RIGHT_MIN_PIXEL_X		(540)
+#define BOTTOM_RIGHT_UARM_X			(52)
+#define BOTTOM_RIGHT_UARM_Y			(15)
 #define BOTTOM_RIGHT_MIN_PIXEL_Y		(0)
-#define BOTTOM_RIGHT_MAX_PIXEL_X		(640)
+#define BOTTOM_RIGHT_MIN_PIXEL_X		(380)
 #define BOTTOM_RIGHT_MAX_PIXEL_Y		(100)
+#define BOTTOM_RIGHT_MAX_PIXEL_X		(480)
 #define IS_BOTTOM_RIGHT_PIXEL_X(X)		(((X) <= BOTTOM_RIGHT_MAX_PIXEL_X) && \
 										((X) >= BOTTOM_RIGHT_MIN_PIXEL_X))
 #define IS_BOTTOM_RIGHT_PIXEL_Y(Y)		(((Y) <= BOTTOM_RIGHT_MAX_PIXEL_Y) && \
 										((Y) >= BOTTOM_RIGHT_MIN_PIXEL_Y))
 /* Top left define */
-#define TOP_RIGHT_UARM_X			(100)
-#define TOP_RIGHT_UARM_Y			(100)
-#define TOP_RIGHT_MIN_PIXEL_X		(540)
-#define TOP_RIGHT_MIN_PIXEL_Y		(380)
-#define TOP_RIGHT_MAX_PIXEL_X		(640)
-#define TOP_RIGHT_MAX_PIXEL_Y		(480)
+#define TOP_RIGHT_UARM_X			(52)
+#define TOP_RIGHT_UARM_Y			(181)
+#define TOP_RIGHT_MIN_PIXEL_Y		(540)
+#define TOP_RIGHT_MIN_PIXEL_X		(380)
+#define TOP_RIGHT_MAX_PIXEL_Y		(640)
+#define TOP_RIGHT_MAX_PIXEL_X		(480)
 #define IS_TOP_RIGHT_PIXEL_X(X)		(((X) <= TOP_RIGHT_MAX_PIXEL_X) && \
 									((X) >= TOP_RIGHT_MIN_PIXEL_X))
 #define IS_TOP_RIGHT_PIXEL_Y(Y)		(((Y) <= TOP_RIGHT_MAX_PIXEL_Y) && \
@@ -66,7 +66,7 @@ typedef struct{
 }t_Point;
 #define MAX_UARM_X				(100)
 #define MIN_UARM_X				(-100)
-#define MAX_UARM_Y				(100)
+#define MAX_UARM_Y				(190)
 #define MIN_UARM_Y				(0)
 #define IS_UARM_X(X)			(((X) <= MAX_UARM_X) && \
 								((X) >= MIN_UARM_X))
@@ -76,9 +76,9 @@ typedef struct{
 								((X) >= MIN_UARM_X) && \
 								((Y) <= MAX_UARM_Y) && \
 								((Y) >= MIN_UARM_Y))
-#define MAX_PIXEL_X				(640)
+#define MAX_PIXEL_X				(480)
 #define MIN_PIXEL_X				(0)
-#define MAX_PIXEL_Y				(480)
+#define MAX_PIXEL_Y				(640)
 #define MIN_PIXEL_Y				(0)
 #define IS_PIXEL_X(X)			(((X) <= MAX_PIXEL_X) && \
 								((X) >= MIN_PIXEL_X))
@@ -123,4 +123,6 @@ int CoinLocation(t_Point* pCoin, t_Plane* pWorkingArea);
 int CopyPoint(t_Point* pPointdst, const t_Point* pPointsrc);
 /* Copy a line */
 int CopyLine(t_Line* pLinedst, const t_Line* pLinesrc);
+/* Write points map */
+int WritePointsMap(t_Plane* pPlane);
 #endif

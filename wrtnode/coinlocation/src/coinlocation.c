@@ -246,3 +246,30 @@ int CopyLine(t_Line* pLinedst, const t_Line* pLinesrc){
 	pLinedst->pPoint = pLinesrc->pPoint;
 	return 0;
 }
+/* Write points map */
+int WritePointsMap(t_Plane* pPlane){
+	FILE* pPointMap;
+	int i,j;
+	t_Line* pLine = pPlane->pLine + (pPlane->LineNumber-1);
+	t_Point* pPoint = pPlane->pLine->pPoint;
+	pPointMap = fopen("/tmp/point_map","w+");
+	if (pPointMap == NULL){
+		printf("Can not generate point_map file.\n");
+		return -1;
+	}
+	else{
+		for(j=pPlane->LineNumber; j>0; j--){
+			fprintf(pPointMap, "Line %3d:",j);
+			pPoint = pLine->pPoint;
+			for(i=pLine->PointNumber; i>0;i--){
+				fprintf(pPointMap, "(%3d,%3d,%3d,%3d)",pPoint->PixelX,pPoint->PixelY, \
+												pPoint->UarmX,pPoint->UarmY);
+				pPoint++;
+			}
+			fprintf(pPointMap, "\n");
+			pLine--;
+		}
+		fclose(pPointMap);
+	}
+	return 0;
+}

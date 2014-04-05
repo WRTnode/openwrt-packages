@@ -107,6 +107,11 @@ int main(int argc, char* argv[]){
 		return -3;
 	}
 	PointPrint("Coin", pCoinPoint);
+	/* Wirte all point map to file:point_map. */
+	if(WritePointsMap(pWorkArea) < 0){
+		perror("Points map generation wrong.\n");
+		return -4;
+	}
 	/* Free the memory. */
 	free(pCoinPoint);
 	free(pWorkArea->pLine->pPoint);
