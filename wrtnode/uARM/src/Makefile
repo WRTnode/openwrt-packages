@@ -23,5 +23,5 @@ install: $(PROGS)
 	$(INSTALL) -m $(INSTMODE) -o $(INSTOWNER) -g $(INSTGROUP) $(PROGS) $(INSTDIR)
 
 clean:
-	rm -f $(PROGS) *.o core
+	rm -f $(PROGS) *.o core *.*~
 
