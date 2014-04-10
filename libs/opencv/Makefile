@@ -27,16 +27,23 @@ endef
 define Package/opencv
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+libpthread +librt +libstdcpp +zlib +libjpeg +libv4l
   TITLE:= opencv-2.4.8
+  DEPENDS:=+libpthread +librt +libstdcpp +zlib +libjpeg +libv4l
 endef
 
 
 PKG_INSTALL:=1
 
 CMAKE_OPTIONS += \
-	-DCMAKE_BUILD_TYPE:String="Release" \
-	-DUSE_SHARED_OPENCV_LIBRARY:Bool=ON \
+	-DWITH_LIBV4L:BOOL=OFF
+
+define Build/InstallDev
+	$(INSTALL_DIR) $(1)/usr/include
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/opencv $(1)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/opencv2 $(1)/usr/include/
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libopencv* $(1)/usr/lib/
+endef
 
 define Package/opencv/install
 	$(INSTALL_DIR) $(1)/usr/include
