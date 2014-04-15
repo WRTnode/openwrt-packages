@@ -28,14 +28,14 @@ define Package/opencv
   SECTION:=libs
   CATEGORY:=Libraries
   TITLE:= opencv-2.4.8
-  DEPENDS:=+libpthread +librt +libstdcpp +zlib +libjpeg +libv4l
+  DEPENDS:=+libpthread +librt +libstdcpp +zlib +libjpeg 
 endef
 
 
 PKG_INSTALL:=1
 
 CMAKE_OPTIONS += \
-	-DWITH_LIBV4L:BOOL=OFF
+	-DWITH_LIBV4L:BOOL=OFF 
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
