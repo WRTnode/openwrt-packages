@@ -1,0 +1,11 @@
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -10920,7 +10920,7 @@ else
+ 	saved_CFLAGS="${CFLAGS}"
+ 	CC="${CC_FOR_BUILD}" CFLAGS="${CFLAGS_FOR_BUILD}" \
+ 	LDFLAGS="${LDFLAGS_FOR_BUILD}" \
+-	${realsrcdir}/configure \
++	CONFIG_SITE= ${realsrcdir}/configure --cache-file=./other.cache \
+ 		--enable-languages=${enable_languages-all} \
+ 		--target=$target_alias --host=$build_alias --build=$build_alias
+ 	CFLAGS="${saved_CFLAGS}"
