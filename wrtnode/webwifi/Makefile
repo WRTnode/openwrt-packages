@@ -36,10 +36,10 @@ define Build/Compile
 endef
 
 define Package/webwifi/install
-	$(INSTALL_DIR) $(1)/bin
+	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/www/
 	$(CP) ./files/www/* $(1)/www/
-	$(INSTALL_BIN) ./files/bin/set_default_page_to_wrtnode_portal.sh $(1)/bin/
+	$(INSTALL_BIN) ./files/usr/bin/set_default_page_to_wrtnode_portal.sh $(1)/usr/bin/
 endef
 
 $(eval $(call BuildPackage,webwifi))
