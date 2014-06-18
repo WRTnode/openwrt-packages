@@ -34,8 +34,9 @@ endef
 
 PKG_INSTALL:=1
 
-CMAKE_OPTIONS += \
-	-DWITH_LIBV4L:BOOL=OFF 
+CMAKE_OPTIONS += -DBUILD_opencv_gpu:BOOL=OFF -DWITH_LIBV4L:BOOL=OFF \
+	 -DWITH_1394:BOOL=OFF -DBUILD_opencv_stitching:BOOL=OFF \
+	 -DBUILD_opencv_superres:BOOL=OFF -DBUILD_opencv_ts:BOOL=OFF 
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
