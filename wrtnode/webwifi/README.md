@@ -17,6 +17,8 @@ Installation
 
 5 Choose your wireless access point, fill out a wireless password, click Save. This process because to restart the network, so to wait a little longer, then refresh the page, you will be prompted to connect the router and has been assigned to the ip address. Click to set the administrative password, you can change your wifi password.
 
+Remove 
+---
 6 Remove webwifi ipk:
 
  `opkg remove webwifi`
