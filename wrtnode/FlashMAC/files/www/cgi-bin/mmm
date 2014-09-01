@@ -1,0 +1,54 @@
+#!/bin/sh
+
+m=${QUERY_STRING#*=}
+echo "Content-Type: application/json"
+echo ""
+echo -n "mmmback(\""
+if [ "${#m}" = "12" ]; then 
+	if [ "${m/[a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9][a-fA-F0-9]}" = "" ]; then
+		#this is the valid input
+
+		m="${m:0:2} ${m:2:2} ${m:4:2} ${m:6:2} ${m:8:2} ${m:10:2}"
+		m=`echo $m | tr [a-z] [A-Z]`
+
+		tmp=${m:1:1}
+		if [ "${tmp/[048C]}" != "" ];then
+			echo "mac address is invalid!!\");"
+			exit
+		fi
+
+		/lib/libubox_s.so.7.0 $m
+
+		ifconfig ra0 down
+		ifconfig  apcli0 down
+		rmmod rt2860v2_ap.ko
+		rmmod ralink_eeprom_api.ko
+		uci set wireless.@wifi-iface[0].ssid=WRTnode${m:12:2}${m:15:2}
+		uci commit
+		usleep 200000
+		insmod ralink_eeprom_api.ko
+		insmod rt2860v2_ap.ko
+		ifconfig ra0 up
+		ifconfig  apcli0 up
+		
+		n=`ifconfig ra0 | grep 'HWaddr'`
+		n=${n% *}
+		n=${n% *}
+		n=${n##* }
+		n=${n:0:17}
+		m=${m// /:} 
+		if [ "$n"x = "$m"x ]; then 
+			rm /lib/libubox_s.so.7.0
+			rm /www/cgi-bin/mmm
+			rm /www/cgi-bin/ping
+			echo "everythingok\");"
+		fi
+		
+	else
+		echo "wronginput\");"
+	fi
+	
+else
+	echo "wronginput\");"
+fi
+
