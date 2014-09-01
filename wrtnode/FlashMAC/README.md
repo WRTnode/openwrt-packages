@@ -20,4 +20,6 @@ vim WRTNODE.dts
 
 ......
 
-Download WRTnodemacjsonp.html and How to flash the MAC via the web.doc
+Download WRTnodemacjsonp.html form https://raw.githubusercontent.com/WRTnode/openwrt-patches/master/FlashMAC-html/WRTnodemacjsonp.html
+
+Download guide.doc from https://github.com/WRTnode/openwrt-patches/raw/master/FlashMAC-html/guide.doc
