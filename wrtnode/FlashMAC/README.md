@@ -6,7 +6,7 @@ Remove the factory's read-only properties in the WRTNODE.dts.
 	
 vim WRTNODE.dts
 
-	......
+......
 
 	factory: partition@40000 {
 
@@ -18,8 +18,6 @@ vim WRTNODE.dts
 
 	};
 
-	......
+......
 
-Download WRTnodemacjsonp.html form https://raw.githubusercontent.com/WRTnode/openwrt-patches/master/FlashMAC-html/WRTnodemacjsonp.html
-
-Download guide.doc from https://github.com/WRTnode/openwrt-patches/raw/master/FlashMAC-html/guide.doc
+Download WRTnodemacjsonp.html and How to flash the MAC via the web.doc

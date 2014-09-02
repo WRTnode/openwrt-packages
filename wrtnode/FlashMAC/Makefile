@@ -25,18 +25,20 @@ define Package/FlashMAC/description
 endef
 
 define Build/Prepare
-        echo
+	mkdir -p $(PKG_BUILD_DIR)
+	$(CP) ./src/* $(PKG_BUILD_DIR)/
 endef
-
+     
 define Build/Compile
-        echo
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		$(TARGET_CONFIGURE_OPTS) CFLAGS="$(TARGET_CFLAGS)"
 endef
 
 define Package/FlashMAC/install
 	$(INSTALL_DIR) $(1)/lib
 	$(INSTALL_DIR) $(1)/www/
 	$(CP) ./files/www/* $(1)/www/
-	$(INSTALL_BIN) ./files/lib/libubox_s.so.7.0 $(1)/lib
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/libubox_s.so.7.0 $(1)/lib
 endef
 
 $(eval $(call BuildPackage,FlashMAC))
