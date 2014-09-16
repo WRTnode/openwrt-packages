@@ -1,0 +1,20 @@
+#!/bin/sh
+
+value=${QUERY_STRING#*=}
+
+if [ $value -gt 0 ]; then
+	dir="d"
+else
+	dir="u"
+	value=${value#*-}
+fi
+
+i=0;
+echo -ne '\xff\xaa'$dir >> /dev/ttyS0
+while [[ $i -lt $value ]];do
+    let i+=1
+    usleep 300000;
+done;
+echo -ne '\xff\xaa'l >> /dev/ttyS0
+usleep 50000
+echo -ne '\xff\xaa's >> /dev/ttyS0
