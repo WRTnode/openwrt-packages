@@ -1,0 +1,147 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+ <link rel="stylesheet" type="text/css" href="style/style.css">	
+<html xmlns="http://www.w3.org/1999/xhtml">
+<meta charset="UTF-8" />
+	<script type="text/JavaScript">
+        
+        function goforward(){
+            var carMove = '';
+            //var carWait = 0;
+            var resource;
+            if(typeof ActiveXObject == 'undefined'){
+                resource = new XMLHttpRequest();
+            }
+            else{
+                // IE
+                resource = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            
+            var distance = 45;
+            carMove='http://192.168.8.1/cgi-bin/g?value=' + Math.floor(distance/15);
+            
+            try{
+                resource.open('GET', carMove, false);
+                resource.send(null);
+            }
+            catch(e){
+            }
+            
+        }
+    
+        function gobackward(){
+            var carMove = '';
+            //var carWait = 0;
+            var resource;
+            if(typeof ActiveXObject == 'undefined'){
+                resource = new XMLHttpRequest();
+            }
+            else{
+                // IE
+                resource = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            
+            var distance = -45;
+            carMove='http://192.168.8.1/cgi-bin/g?value=' + Math.floor(distance/15);
+            
+            try{
+                resource.open('GET', carMove, false);
+                resource.send(null);
+            }
+            catch(e){
+            }
+        }
+    
+        function goleft(){
+            var carMove = '';
+            //var carWait = 0;
+            var resource;
+            if(typeof ActiveXObject == 'undefined'){
+                resource = new XMLHttpRequest();
+            }
+            else{
+                // IE
+                resource = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            
+            var argle = -90;
+            carMove='http://192.168.8.1/cgi-bin/t?value=' + Math.floor((argle>180?argle-360:argle)/18);
+            
+            try{
+                resource.open('GET', carMove, false);
+                resource.send(null);
+            }
+            catch(e){
+            }
+        }
+    
+        function goright(){
+            var carMove = '';
+            //var carWait = 0;
+            var resource;
+            if(typeof ActiveXObject == 'undefined'){
+                resource = new XMLHttpRequest();
+            }
+            else{
+                // IE
+                resource = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            
+            var argle = 90;
+            carMove='http://192.168.8.1/cgi-bin/t?value=' + Math.floor((argle>180?argle-360:argle)/18);
+            
+            try{
+                resource.open('GET', carMove, false);
+                resource.send(null);
+            }
+            catch(e){
+            }
+            
+        }
+    
+    </script>
+    <style>
+		.direction{float:left;}
+		.func{ float:right;}
+		.set{}
+	</style>
+<body>
+<div class="set">
+<center>
+<center>
+</div>
+<div class="direction">	
+<table width="300" hight="300" border="0" >
+  <tr>
+    <td>&nbsp;</td>
+    <td><img id="verifycode_img" src="images/up.png" onclick="goforward()"></td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td><img id="verifycode_img" src="images/left.png" onclick="goleft()"></td>
+    <td>&nbsp;</td>
+    <td><img id="verifycode_img" src="images/right.png" onclick="goright()"></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td><img id="verifycode_img" src="images/down.png" onclick="gobackward()"></td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+  </tr>
+</table>
+</div>
+<div><table width="30%" border="0">
+  <tr>
+    <td><img id="verifycode_img" src="images/blank2.png""></td>
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+  </tr>
+</table>
+
+    
+</div></body>
+</html>

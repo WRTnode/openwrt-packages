@@ -1,0 +1,96 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>blockly</title>
+<link href="index.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="index.js"></script>
+<script type="text/javascript">
+function MM_swapImgRestore() { //v3.0
+  var i,x,a=document.MM_sr; for(i=0;a&&i<a.length&&(x=a[i])&&x.oSrc;i++) x.src=x.oSrc;
+}
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+
+function MM_findObj(n, d) { //v4.01
+  var p,i,x;  if(!d) d=document; if((p=n.indexOf("?"))>0&&parent.frames.length) {
+    d=parent.frames[n.substring(p+1)].document; n=n.substring(0,p);}
+  if(!(x=d[n])&&d.all) x=d.all[n]; for (i=0;!x&&i<d.forms.length;i++) x=d.forms[i][n];
+  for(i=0;!x&&d.layers&&i<d.layers.length;i++) x=MM_findObj(n,d.layers[i].document);
+  if(!x && d.getElementById) x=d.getElementById(n); return x;
+}
+
+function MM_swapImage() { //v3.0
+  var i,j=0,x,a=MM_swapImage.arguments; document.MM_sr=new Array; for(i=0;i<(a.length-2);i+=3)
+   if ((x=MM_findObj(a[i]))!=null){document.MM_sr[j++]=x; if(!x.oSrc) x.oSrc=x.src; x.src=a[i+2];}
+}
+</script>
+</head>
+
+<body onLoad="MM_preloadImages('images/shubiao (4).png','images/shubiao (5).png','images/shubiao (1).png','images/shubiao (2).png','images/shubiao (3).png')">
+<header> <a class="logo"><img src="images/logo.png" width="174" height="51" alt=""/></a>
+  <nav class="denglu">
+    <ul>
+    <div id="here"></div>
+      <li class="dl"><a href="#" onClick="showWindow" onMouseMove="f(true)" onMouseOut="f(false)" id="clickhere"></a> </li>
+      <li class="wf" style="width:100px;"><a href="xhi/webui-xhi/setwifi.html" onMouseMove="g(true)" onMouseOut="g(false)" id="wifi">连接外网</a></li>
+    </ul>
+  </nav>
+  
+<!-- 要嵌入到窗口的内容 -->
+  <div id="logo" style="display:none;">
+        <form action="#" method="post" onSubmit="return false;">
+            <table width="400" height="95">
+                <tr>
+                    <td width="78">链接文字</td>
+                    <td width="168"><input name="link.name" type="text"/></td>
+                    <td width="138" id="linktext"></td>
+                </tr>
+                <tr>
+                    <td>链接地址</td>
+                    <td><input name="link.url" type="text"/></td>
+                    <td id="linkurl"></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td><button type="submit" style="float:right;">添加</button></td>
+                    <td id="savelink"></td>
+                </tr>
+            </table></form></div>
+</header>
+<article>
+  <p class="ztbt">Blockly是一个图形化的程序设计环境。下面是一些使用Blockly的应用示例。</p>
+  <section class="zhuti">
+    <ul>
+      <li class="pintu"><a href="apps/puzzle" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('pin','','images/shubiao (4).png',1)"><img src="images/zhutu1 (1).png" alt="" width="229" height="245" id="pin"></a></li>
+      <li class="migong"><a href="apps/maze" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('mi','','images/shubiao (5).png',1)"><img src="images/zhutu1 (3).png" alt="" width="227" height="242" id="mi"></a></li>
+      <li class="feiji"><a href="apps/plane" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('fj','','images/shubiao (1).png',1)"><img src="images/zhutu1 (4).png" alt="" width="229" height="245" id="fj"></a></li>
+      <li class="wugui"><a href="apps/turtle" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('wu','','images/shubiao (2).png',1)"><img src="images/zhutu1 (5).png" alt="" width="228" height="245" id="wu"></a></li>
+      <li class="tuxing"><a href="apps/graph" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('tu','','images/shubiao (3).png',1)"><img src="images/zhutu1 (2).png" alt="" width="229" height="245" id="tu"></a></li>
+      <li class="kongzhi"><a href="apps/directionController/onlineenroll/online_ck.html" onMouseOut="MM_swapImgRestore()" onMouseOver="MM_swapImage('kong','','images/shubiao (6).png',1)"><img src="images/zhutu1 (6).png" alt="" width="229" height="245" id="kong"></a></li>
+  
+    
+    </ul>
+  </section>
+</article>
+<footer>
+
+      <img src="images/fengexian.png" width="1024" height="1" alt=""/>
+  <div class="shengming">
+    <div class="fulogo"><img src="images/gdf.png" width="103" height="33" alt=""/></div>
+    <div class="wenzi">
+      <h4>Blockly是免费和开源的软件。</h4>
+      <p> 若要贡献代码或翻译Blockly，或者在您自己的应用中使用Blockly,请查看blockly.googlecode.com> </p
+  >
+    </div>
+  </div>
+  <div class="banquan">
+    <h3>CopyRight 2013—2023</h3>
+    <p>版权所有|北京交叉点击科技有限公司</p>
+  </div>
+</footer>
+</body>
+</html>

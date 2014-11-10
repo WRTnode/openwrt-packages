@@ -1,0 +1,35 @@
+#!/usr/bin/python
+#! encoding:utf-8
+# Filename : socket_echo_udp_server_dgram.py
+# import socket
+import sys
+import serial
+import binascii
+def hexShow(argv):  
+    result = ''  
+    hLen = len(argv)
+    if (hLen==18):
+        humi1 = ord(argv[5])
+        temp1 = ord(argv[6])
+        for i in xrange(4):  
+            hvol = ord(argv[i+7])
+            hhex = '%02x'%hvol
+            result += hhex
+            pres1=int(result,16)
+    else:
+        humi1=0
+        temp1=0
+        pres1=0  
+    return(humi1,temp1,pres1)
+
+
+# open serial port
+ser = serial.Serial("/dev/ttyUSB1", 115200, timeout=1)
+ser.open()
+ser.write("\x24\x4d\x3c\x00\x06\x06")    
+aa=ser.readline()
+print(aa)
+humi,temp,pres=hexShow(aa)
+print "Content-Type: application/json"
+print ""
+print """{"humi":%s,"temp":%s,"pres":%s}""" % ( humi, temp, pres)

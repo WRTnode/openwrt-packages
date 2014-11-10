@@ -1,0 +1,15 @@
+#!/usr/bin/python
+#! encoding:utf-8
+# Filename : socket_echo_udp_server_dgram.py
+# import socket
+import sys
+import serial
+
+# open serial port
+ser = serial.Serial("/dev/ttyACM0", 115200, timeout=0.005)
+ser.open()
+#ser.write("\x24\x4d\x3c\x03\x0B\x0D\x00\x01\x07")
+ser.write("\x24\x4d\x3c\x06\x0B\x0D\x01\x03\xE7\x01\xF4\x16")   
+print "Content-Type: application/json"
+print ""
+print "{}"

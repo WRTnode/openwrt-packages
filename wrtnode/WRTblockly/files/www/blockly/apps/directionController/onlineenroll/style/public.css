@@ -1,0 +1,133 @@
+@charset "utf-8";
+/*css reset*/
+body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0;}
+img{border:0;}
+address,caption,cite,code,dfn,em,th,var{font-style:normal;font-weight:normal;}
+ol,ul{list-style:none;}
+h1,h2,h3,h4,h5,h6{font-size:100%;}
+a{text-decoration:none;outline:none;}
+textarea{resize:none;}
+.none{ display:none;}
+.clr{ clear:both; width:0; height:0; overflow:hidden;}
+/*html,body*/
+html{_text-overflow:ellipsis;}
+body{font-size:12px;font-family:'\5B8B\4F53',SimSun,'\5FAE\8F6F\96C5\9ED1',Microsoft Yahei,Verdana,Calibri,Helvetica,Arial,sans-serif;}
+/*导航*/
+.header{
+	 width:100%;
+	 height:70px;
+	 background-color:#35aedb;
+     font-size: 15px;
+     font-weight: bold;
+ }
+ .header1{
+ 	 width:980px;
+	 height:70px;
+ 	 text-align:center;
+     margin: 0 auto;
+ }
+ .logo{
+ 	 float: left;
+ 	 
+ }
+ .nav{
+    width:812px;
+ 	height:70px;
+    float: right;
+ }
+  .nav li{
+  	float: left;
+}
+  .nav li a{
+  	 width:78px;
+ 	 height:70px;
+ 	 float: right;
+     display: block;
+     line-height: 70px;
+     text-align: center;
+     color: white;
+ }
+   .nav li a:hover{
+  	 width:78px;
+ 	 height:70px;
+ 	 float: right;
+     display: block;
+     line-height: 70px;
+     text-align: center;
+     color: #35aedb;
+     background-color: white;
+ }
+    a {
+     text-decoration: none;
+ } 
+ .topSearchTxt{}
+.topSearch{display:inline-block;height:30px;float:right;margin:-49px 0px 0 0; position:relative;border:0;}
+.topSearchTxt{height:30px;width:160px;line-height:30px;border:0;float:left;padding:0 0 0 5px;}
+.topSearchBtn{height:30px;width:30px;border:0;background:#fff url(../images/search.jpg) no-repeat left top; cursor:pointer;float:left}
+
+
+ 
+/** online registration DIY **/
+.banner-ad{width:980px;height:396px;background:url(../images/banner_cp.jpg); margin:0 auto;}
+.main{width:980px;height:auto;border:1px solid #f2f2f2;margin:0 auto;overflow:hidden;}
+.m_left{float:left;}
+.tab_xxk{width:630px;height:40px;background-color:#0094E1;line-height:40px;margin:2px;text-align:center;}
+.tab_xxk p{float:left;width:210px;}.tab_xxk p a{color:#FFFFFF;font-weight:bold;padding:14px 79px;}
+.a_hover{background-color:#fff;}.tab_xxk p.a_hover a{color:#0094E1;}
+.con{width:615px;height:472px;border:1px solid #0094E1;margin:10px;}
+.m_right{width:340px;height:524px;float:right;margin:2px 0;}
+.zier{color: #333333;font-size: 14px;font-weight: bold;text-align:center;line-height:35px;}
+.wxts{color: #ff0000;text-align:center;font-size: 14px;font-weight: bold;line-height:45px;}
+.wxts_c{color:#0094E1;font-size:14px;line-height:26px;}	
+input, select, textarea {margin: 5px 3px 10px 10px;padding: 3px;vertical-align: middle;line-height: 24px;font-size: 14px;}
+label {
+font-weight: bold;
+font-size: 14px;
+line-height: 24px;
+text-align: right;
+width: 120px;
+border-right: 1px dotted #099;
+float: left;
+display: block;
+margin: 5px 3px 0 0;
+padding: 3px;
+}
+input{border: 1px solid #7F9DB9;background-color: #ffffff;height: 24px;}
+textarea {width: 400px;
+padding: 4px;
+border: 1px solid #7F9DB9;
+height: 100px;
+display: block;
+float: left;
+background-color: #ffffff;}
+.red{color: #ff0000;}
+input.submitbutton {
+width: 100px;
+height: 36px;
+background-color: #0094e1;
+padding: 4px;
+border: 1px solid #cccccc;
+cursor: pointer;
+text-align: center;
+color: #ffffff;
+font-weight:bold;
+}
+.tab_sub{margin-top:10px;}
+/** online registration DIY over **/
+ .di{
+ 	 width:100%;
+ 	 height:176px;
+	 background:url(../images/di.jpg); 
+ }
+ .fonter{width: 980px;
+  margin: 0 auto;
+  color: #fff;
+line-height: 24px;
+padding-top: 15px;
+}
+ .fFl{float: left;}
+ .fFr{float: right;
+text-align: right;
+ }
+ .f_logo{text-align: center;
+  margin-top: 0;}    
