@@ -1,1 +1,0 @@
-<xml xmlns="http://www.w3.org/1999/xhtml"><block type="wrt_dunio_iosetmn" id="15" x="93" y="116"><field name="io">14</field><next><block type="text_print" id="16" inline="false"><value name="TEXT"><block type="inout_analog_read" id="17"><field name="io">14</field></block></value></block></next></block></xml>
