@@ -103,7 +103,7 @@ endef
 define Package/uhttpd-mod-uixo
   $(Package/uhttpd_UIXO/default)
   TITLE+= (uixo plugin)
-  DEPENDS:=uhttpd +libuixo
+  DEPENDS:=uhttpd 
 endef
 
 define Package/uhttpd-mod-uixo/description
