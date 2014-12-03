@@ -1,0 +1,262 @@
+diff -ruNa a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt	2014-10-29 22:00:21.000000000 +0800
++++ b/CMakeLists.txt	2014-12-01 17:21:33.000000000 +0800
+@@ -10,6 +10,7 @@
+ OPTION(TLS_SUPPORT "TLS support" ON)
+ OPTION(LUA_SUPPORT "Lua support" ON)
+ OPTION(UBUS_SUPPORT "ubus support" ON)
++OPTION(UIXO_SUPPORT "uixo support" ON)
+ 
+ IF(APPLE)
+   INCLUDE_DIRECTORIES(/opt/local/include)
+@@ -73,6 +74,13 @@
+ 	TARGET_LINK_LIBRARIES(uhttpd_ubus ubus ubox blobmsg_json ${libjson})
+ ENDIF()
+ 
++IF(UIXO_SUPPORT)
++	SET(PLUGINS ${PLUGINS} uhttpd_uixo)
++	ADD_DEFINITIONS(-DHAVE_UIXO)
++	ADD_LIBRARY(uhttpd_uixo MODULE uixo.c)
++	TARGET_LINK_LIBRARIES(uhttpd_uixo ubox)
++ENDIF()
++
+ IF(PLUGINS)
+ 	SET_TARGET_PROPERTIES(${PLUGINS} PROPERTIES
+ 		PREFIX ""
+diff -ruNa a/main.c b/main.c
+--- a/main.c	2014-10-29 22:00:21.000000000 +0800
++++ b/main.c	2014-12-01 17:21:52.000000000 +0800
+@@ -152,6 +152,9 @@
+ 		"	-U file         Override ubus socket path\n"
+ 		"	-a              Do not authenticate JSON-RPC requests against UBUS session api\n"
+ #endif
++#ifdef HAVE_UIXO
++		"	-P string       URL prefix for UIXO, default is '/UIXO'\n"
++#endif
+ 		"	-x string       URL prefix for CGI handler, default is '/cgi-bin'\n"
+ 		"	-i .ext=path    Use interpreter at path for files with the given extension\n"
+ 		"	-t seconds      CGI, Lua and UBUS script timeout in seconds, default is 60\n"
+@@ -226,7 +229,7 @@
+ 	init_defaults_pre();
+ 	signal(SIGPIPE, SIG_IGN);
+ 
+-	while ((ch = getopt(argc, argv, "afSDRC:K:E:I:p:s:h:c:l:L:d:r:m:n:N:x:i:t:k:T:A:u:U:")) != -1) {
++	while ((ch = getopt(argc, argv, "afSDRC:K:E:I:p:s:h:c:l:L:d:r:m:n:N:x:i:t:k:T:A:u:U:P:")) != -1) {
+ 		switch(ch) {
+ #ifdef HAVE_TLS
+ 		case 'C':
+@@ -248,6 +251,16 @@
+ 			                "ignoring -%c\n", opt);
+ 			break;
+ #endif
++#ifdef HAVE_UIXO
++		case 'P':
++			conf.uixo_prefix = optarg;
++			break;
++#else
++		case 'P':
++			fprintf(stderr, "uhttpd: UIXO support not compiled, "
++			                "ignoring -%c\n", opt);
++			break;
++#endif
+ 		case 'p':
+ 			optarg = strdup(optarg);
+ 			bound += add_listener_arg(optarg, (ch == 's'));
+@@ -460,6 +473,16 @@
+ 		return 1;
+ #endif
+ 
++#ifdef HAVE_UIXO
++	if (!conf.uixo_prefix) {
++		fprintf(stderr, "Need prefix to enable UIXO support\n");
++		return 1;
++	}
++	if (uh_plugin_init("uhttpd_uixo.so")) {
++		return 1;
++	}
++#endif
++
+ 	/* fork (if not disabled) */
+ 	if (!nofork) {
+ 		switch (fork()) {
+diff -ruNa a/uhttpd.h b/uhttpd.h
+--- a/uhttpd.h	2014-10-29 22:00:21.000000000 +0800
++++ b/uhttpd.h	2014-12-01 17:24:30.000000000 +0800
+@@ -58,6 +58,9 @@
+ 	const char *lua_prefix;
+ 	const char *ubus_prefix;
+ 	const char *ubus_socket;
++#ifdef HAVE_UIXO
++	const char *uixo_prefix;
++#endif
+ 	int no_symlinks;
+ 	int no_dirlists;
+ 	int network_timeout;
+diff -ruNa a/uixo.c b/uixo.c
+--- a/uixo.c	1970-01-01 08:00:00.000000000 +0800
++++ b/uixo.c	2014-12-02 19:01:30.022985811 +0800
+@@ -0,0 +1,164 @@
++/*
++ * uhttpd - Tiny single-threaded httpd
++ *
++ *   Copyright (C) 2010-2013 Jo-Philipp Wich <xm@subsignal.org>
++ *   Copyright (C) 2013 Felix Fietkau <nbd@openwrt.org>
++ *   Copyright (C) 2014 Schumy Hao <schumy@wrtnode.com>
++ *
++ * Permission to use, copy, modify, and/or distribute this software for any
++ * purpose with or without fee is hereby granted, provided that the above
++ * copyright notice and this permission notice appear in all copies.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
++ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
++ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
++ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ */
++
++#define _GNU_SOURCE
++#include <stdio.h>
++#include <fcntl.h>
++#include <linux/limits.h>
++
++#include "uhttpd.h"
++#include "plugin.h"
++
++static const struct uhttpd_ops *ops;
++static struct config *_conf;
++#define conf (*_conf)
++
++static void uixo_main(struct client *cl, struct path_info *pi, char *url)
++{
++	struct env_var *var;
++
++	clearenv();
++	setenv("PATH", conf.docroot, 1);
++
++	for (var = ops->get_process_vars(cl, pi); var->name; var++) {
++		if (!var->value)
++			continue;
++
++		setenv(var->name, var->value, 1);
++	}
++
++	if(chdir(pi->root) < 0)
++	{
++		printf("Error: unable to chdir to %s\n", pi->root);
++	}
++
++	if ((NULL==pi->info) && (NULL==pi->query))
++		execl(pi->phys, pi->phys, NULL);
++	else if((NULL!=pi->info) && (NULL==pi->query))
++		execl(pi->phys, pi->phys, pi->info, NULL);
++	else if((NULL==pi->info) && (NULL!=pi->query))
++		execl(pi->phys, pi->phys, "-e", pi->query, NULL);
++	else
++		execl(pi->phys, pi->phys, pi->info, pi->query, NULL);
++	
++
++	printf("Status: 500 Internal Server Error\r\n\r\n"
++	       "Unable to launch the requested CGI program:\n"
++	       "  %s: %s\n", pi->phys, strerror(errno));
++}
++
++static void uixo_handle_request(struct client *cl, char *url, struct path_info *pi)
++{
++	unsigned int mode = S_IFREG | S_IXOTH;
++
++	static char path_phys[PATH_MAX];
++	static char path_info[PATH_MAX];
++	static char buffer[4096];
++	static struct path_info p;
++	const char *uixo_interpreter = NULL;
++	int interpreter_len = 0;
++	char *pathptr = NULL;
++	int len = 0;
++
++	/* back out early if url is undefined */
++	if (url == NULL)
++		return ;
++
++	memset(&p, 0, sizeof(p));
++	path_phys[0] = 0;
++	path_info[0] = 0;
++	buffer[0] = 0;
++
++	uixo_interpreter = strcat(strcpy(path_phys, conf.docroot), conf.uixo_prefix);
++	interpreter_len = strlen(uixo_interpreter);
++	strcpy(buffer, uixo_interpreter);
++
++	/* separate query string from url */
++	if ((pathptr = strchr(url, '?')) != NULL) {
++		p.query = pathptr[1] ? pathptr + 1 : NULL;
++
++		/* urldecode component w/o query */
++		if (pathptr > url) {
++			if ((len = ops->urldecode(&buffer[interpreter_len],
++					 sizeof(buffer) - interpreter_len - 1,
++					 url, pathptr - url )) < 0)
++				return ;
++		}
++	}
++
++	/* no query string, decode all of url */
++	else if ((len = ops->urldecode(&buffer[interpreter_len],
++			      sizeof(buffer) - interpreter_len - 1,
++			      url, strlen(url))) < 0)
++		return ;
++
++	/* copy restful url to path info */
++	if(len > strlen(conf.uixo_prefix))
++		strncpy(path_info,
++				&buffer[ interpreter_len+strlen(conf.uixo_prefix) ],
++				len - strlen(conf.uixo_prefix) + 1);
++
++	/* check uixo interpreter */
++	if (stat(uixo_interpreter, &p.stat))
++		return ;
++	if (!(p.stat.st_mode & S_IFREG)) {
++		return ;
++	}
++
++	strcpy(path_phys, uixo_interpreter);
++	p.root = conf.docroot;
++	p.phys = path_phys;
++	p.name = conf.uixo_prefix;
++	p.info = path_info[0] ? path_info : NULL;
++
++	if (!((p.stat.st_mode & mode) == mode)) {
++		ops->client_error(cl, 403, "Forbidden",
++				"You don't have permission to access %s on this server.",
++				url);
++	}
++
++	if (!ops->create_process(cl, &p, url, uixo_main)) {
++		ops->client_error(cl, 500, "Internal Server Error",
++				"Failed to create CGI process: %s", strerror(errno));
++	}
++}
++
++static bool check_uixo_url(const char *url)
++{
++	return ops->path_match(conf.uixo_prefix, url);
++}
++
++static struct dispatch_handler uixo_dispatch = {
++	.script = true,
++	.check_url = check_uixo_url,
++	.handle_request = uixo_handle_request,
++};
++
++static int uixo_plugin_init(const struct uhttpd_ops *o, struct config *c)
++{
++	ops = o;
++	_conf = c;
++	ops->dispatch_add(&uixo_dispatch);
++	return 0;
++}
++
++struct uhttpd_plugin uhttpd_plugin = {
++	.init = uixo_plugin_init,
++};

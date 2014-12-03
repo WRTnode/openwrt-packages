@@ -8,8 +8,9 @@
 */
 
 /*#define GNR_COM*/
+#define GNR_COM
 /*#define USB_COM*/
-#define ACM_COM
+//#define ACM_COM
 //TODO：If user didn't define the uart type.
 
 /* Include files */
