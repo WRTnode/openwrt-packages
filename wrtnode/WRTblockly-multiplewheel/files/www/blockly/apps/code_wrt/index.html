@@ -1,0 +1,270 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Blockly Demo: Generating JavaScript</title>
+  <script type="text/javascript" src="../../blockly_compressed.js"></script>
+  <script type="text/javascript" src="../../blocks_compressed.js"></script>
+  <script type="text/javascript" src="../../javascript_compressed.js"></script>
+  <script type="text/javascript" src="../../msg/js/zh-hans.js"></script> 
+  <script type="text/javascript" src="../../appengine/storage.js"></script>
+  <script type="text/javascript" src="../../js/jquery.min.js"></script>
+  <script type="text/javascript" src="../../js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../js/docs.min.js"></script>
+  <script type="text/javascript" src="../../js/bootstrap-select.min.js"></script>
+  <script type="text/javascript" src="../../blocks/wrtNode_wk.js"></script>
+  <script type="text/javascript" src="../../generators/javascript/wrtNode_wk.js"></script> 
+  <style>
+    body {
+      background-color: white;
+      font-family: sans-serif;
+      margin: 0;
+      padding:0;
+    }
+    .blocklySvg {
+      height: 100%;
+      width: 100%;
+    }
+    h1 {
+      font-weight: normal;
+      font-size: 140%;
+	  color:#000;
+	  width:100%;
+    }
+	a{
+		color:#0000ee;}
+    td {
+      vertical-align: top;
+    }
+
+    /* Tabs */
+    #tabRow>td {
+      border: 0px solid #ccc;
+    }
+    td .tabon {
+      border-bottom-color: #ddd !important;
+      padding: 5px 19px;
+    }
+    td.taboff {
+      cursor: pointer;
+      padding: 5px 19px;
+    }
+    td.taboff:hover {
+      background-color: #eee;
+    }
+    td.tabmin {
+      border-top-style: none !important;
+      border-left-style: none !important;
+      border-right-style: none !important;
+	  height:40px;
+    }
+    td .tabmax {
+      border-top-style: none !important;
+      border-left-style: none !important;
+      border-right-style: none !important;
+      width: 100%;
+      text-align: right;
+	  background:#0F9;
+	    height:40px;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+    td {
+      padding: 0;
+    }
+    pre,
+    #content_xml,
+    {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+      border: 1px solid #ccc;
+      border-top-style: none;
+      overflow: hidden;
+      display: none;
+    }
+    #textarea_xml,
+   {
+      width: 100%;
+      height: 100%;
+      border: none;
+      resize: none;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #ccc;
+      border-top-style: none;
+    }
+    button {
+      padding: 1px 1em;
+      font-size: 90%;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      background-color: #eee;
+      color: black;
+    }
+    button.launch {
+      border: 1px solid #d43;
+      background-color: #d43;
+      color: white;
+    }
+    button:active {
+      border: 1px solid blue !important;
+    }
+    button:hover {
+      box-shadow: 2px 2px 5px #888;
+    }even
+	table[id="tab_xml"] tr td:nth-child(1){ background-color:#CCC; width:25%;}
+	table[id="tab_xml"] tr td:nth-child(2){  width:50%;}
+	table[id="tab_xml"] tr td:nth-child(3){  width:12.5%;} 
+	table[id="tab_xml"] tr td:nth-child(4){  width:12.5%;}  
+	table[id="tab_xml"] tr{ height:30px;} 
+	table[id="tab_xml"] tr:nth-child(even) td:nth-child(1){background:#CCC;} 
+    table[id="tab_xml"] tr:nth-child(odd) td:nth-child(1){background:#6d6b6b;} 
+	table[id="tab_xml"] tr td{ padding-top:5px; text-align:center;} 
+	table[id="tab_xml"] tr:nth-child(even):hover{ background:#CCC;} 
+	table[id="tab_xml"] tr:nth-child(odd):hover{background:#6d6b6b;}
+  </style>
+</head>
+<body>
+<table height="100%" width="100%">
+    <tr>
+      <td>
+        <h1>&nbsp;<a href="../index.html?lang=zh-hans">Blockly</a> &gt; 基于平衡车的交互式编程界面
+        		<div style="float:right;"> 
+              <button onClick=" showCode()">显示</button>
+              <button onClick=" runCode()">运行</button>
+              <button onClick="discard()">重置</button>
+              <button onclick="saveXML()">保存本地</button>
+              <button onclick="loadXML()" id="fakeload123">本地加载</button>
+              <button onclick="uploadXML()">保存在WRTnode</button>
+             
+              <input type="file" id="load" style="display:none"/>
+              </div>
+        </h1>
+       </td>
+    </tr>
+    <tr>
+      <td>
+       
+      </td>
+    </tr>
+    <tr>
+      <td height="100%">
+          <div style="height:800px; width:22%;float:left;">
+          	<div style="height:400px; width:95%;border:1px solid #CCC; margin-left:2%; ">
+            </div>
+            	<div style="height:100px; width:95%; margin-left:2%; ">
+               </div>
+               <div style="height:300px; width:95%; margin-left:2%; overflow:scroll;">
+               	  <div id="div_tab" style=" width:100%;">
+                    <table border="1" id="tab_xml" width="100%" style="clear:both;">
+                    <tr>
+                            <td>名称</td>
+                            <td >描述</td>
+                            <td>加载</td>
+                            <td>删除</td>
+                    </tr>
+              </table>
+          </div>
+               </div>
+          
+          </div>
+         <div id="blocklyDiv" style="height:800px; width:78%; float:left;"></div>
+     
+  <xml id="toolbox" style="display: none">
+    <category name="小车"><block type="move_front"></block><block type="move_right"></block></category><category name="逻辑"><block type="controls_if"></block><block type="logic_compare"></block><block type="logic_operation"></block><block type="logic_negate"></block><block type="logic_boolean"></block><block type="logic_ternary"></block></category><category name="循环"><block type="controls_repeat_ext"><value name="TIMES"><block type="math_number"><field name="NUM">10</field></block></value></block><block type="controls_whileUntil"></block><block type="controls_for"><value name="FROM"><block type="math_number"><field name="NUM">1</field></block></value><value name="TO"><block type="math_number"><field name="NUM">10</field></block></value><value name="BY"><block type="math_number"><field name="NUM">1</field></block></value></block><block type="controls_forEach"></block><block type="controls_flow_statements"></block></category><category name="数学"><block type="math_number"></block><block type="math_arithmetic"></block><block type="math_single"></block><block type="math_trig"></block><block type="math_constant"></block><block type="math_number_property"></block><block type="math_change"><value name="DELTA"><block type="math_number"><field name="NUM">1</field></block></value></block><block type="math_round"></block><block type="math_on_list"></block><block type="math_modulo"></block><block type="math_constrain"><value name="LOW"><block type="math_number"><field name="NUM">1</field></block></value><value name="HIGH"><block type="math_number"><field name="NUM">100</field></block></value></block><block type="math_random_int"><value name="FROM"><block type="math_number"><field name="NUM">1</field></block></value><value name="TO"><block type="math_number"><field name="NUM">100</field></block></value></block><block type="math_random_float"></block></category><category name="列表"><block type="lists_create_empty"></block><block type="lists_create_with"></block><block type="lists_repeat"><value name="NUM"><block type="math_number"><field name="NUM">5</field></block></value></block><block type="lists_length"></block><block type="lists_isEmpty"></block><block type="lists_indexOf"><value name="VALUE"><block type="variables_get"><field name="VAR">列表</field></block></value></block><block type="lists_getIndex"><value name="VALUE"><block type="variables_get"><field name="VAR">列表</field></block></value></block><block type="lists_setIndex"><value name="LIST"><block type="variables_get"><field name="VAR">列表</field></block></value></block><block type="lists_getSublist"><value name="LIST"><block type="variables_get"><field name="VAR">列表</field></block></value></block></category><category name="变量" custom="VARIABLE"></category><category name="函数" custom="PROCEDURE"></category>
+    <category name="字符串">
+      <block type="text"></block>
+      <block type="text_join"></block>
+      <block type="text_create_join_container"></block>
+      <block type="text_create_join_item"></block>
+      <block type="text_append"></block>
+      <block type="text_length"></block>
+      <block type="text_isEmpty"></block>
+      <block type="text_indexOf"></block>
+      <block type="text_getSubstring"></block>
+      <block type="text_changeCase"></block>
+      <block type="text_trim"></block>
+      <block type="text_print"></block>
+      <block type="text_prompt"></block>
+    </category>
+    <category name="小模块">
+      <block type="wrtnode_init"></block>
+      <block type="base_delay"></block>
+      <block type="wrtnode_temp"></block>
+      <block type="wrtnode_humi"></block>
+      <block type="wrtnode_pres"></block>
+      <block type="wrtnode_dist"></block>
+    </category>
+    <category name="13端口测试">
+		<block type="wrt_13output"></block>
+        <block type="wrt_13outputhigh"></block>
+        <block type="wrt_13outputlow"></block>
+        <block type="wrt_13outpwm"></block>
+    </category>     
+    <category name="面包板(选择)">
+        <block type="wrt_dunio_iosetgpio"></block>
+        <block type="inout_dialog_freqcover"></block>
+        <block type="wrt_dunio_iosetmn"></block>
+        
+        <block type="inout_digital_write"></block>
+        <block type="inout_digital_read"></block>
+        <block type="inout_analog_read"></block>
+
+    </category>  
+    <category name="面包板(输入)">
+        <block type="wrt_dunio_setiogene"></block>
+        <block type="wrt_dunio_setpwm"></block>
+        <block type="wrt_dunio_setioreada"></block>
+        <block type="inout_highlow"></block>
+        <block type="wrt_dunio_setioout"></block>
+        <block type="wrt_dunio_readiod"></block>
+        <block type="wrt_dunio_readioa"></block>
+    </category>     
+    
+          
+  </xml>
+
+      </td>
+    </tr>
+  </table>
+
+  <script>
+    Blockly.inject(document.getElementById('blocklyDiv'),
+        {path: '../../', toolbox: document.getElementById('toolbox')});
+
+    function showCode() {
+      // Generate JavaScript code and display it.
+      Blockly.JavaScript.INFINITE_LOOP_TRAP = null;
+      var code = Blockly.JavaScript.workspaceToCode();
+      alert(code);
+    }
+
+    function runCode() {
+      // Generate JavaScript code and run it.
+      window.LoopTrap = 1000;
+      Blockly.JavaScript.INFINITE_LOOP_TRAP =
+          'if (--window.LoopTrap == 0) throw "Infinite loop.";\n';
+      var code = Blockly.JavaScript.workspaceToCode();
+      Blockly.JavaScript.INFINITE_LOOP_TRAP = null;
+      try {
+        eval(code);
+      } catch (e) {
+        alert(e);
+      }
+    }
+  </script>
+
+</body>
+  <script type="text/javascript">
+ 	$(window).on('load',load_file_name());
+  </script>
+</html>

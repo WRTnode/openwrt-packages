@@ -1,0 +1,508 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <script type="text/javascript" src="../../../js/jquery.min.js"></script>
+  <script type="text/javascript" src="../../../js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../js/docs.min.js"></script>
+  <script type="text/javascript" src="../../../js/bootstrap-select.min.js"></script>
+<meta charset="UTF-8" />
+ <link rel="stylesheet" type="text/css" href="style/style.css">	
+
+    <style>
+		.direction{float:left;}
+		.func{ float:right;}
+		.set{}
+	</style>
+<body onload="init()">
+<div class="set">
+</div>
+<div class="direction">	
+<table width="300" hight="300" border="0" >
+  <tr>
+    <td>&nbsp;</td>
+    <td><input type="image" id="verifycode_img" src="images/up.png" onmouseup="stop()" onmousedown="goforward()" ontouchstart="goforward()" ontouchend="stop()"></td>
+    <td>&nbsp;</td>
+
+  </tr>
+  <tr>
+    <td><input type="image" id="verifycode_img" src="images/left.png" onmouseup="stop()" onmousedown="goleft()" ontouchstart="goleft()" ontouchend="stop()"></td>
+    <td>&nbsp;</td>
+    <td><input type="image" id="verifycode_img" src="images/right.png" onmouseup="stop()" onmousedown="goright()" ontouchstart="goright()" ontouchend="stop()"></td>
+
+  </tr>
+  <tr>
+    <td>&nbsp;</td>
+    <td><input type="image" id="verifycode_img" src="images/down.png" onmouseup="stop()" onmousedown="gobackward()" ontouchstart="gobackward()" ontouchend="stop()"></td>
+    <td>&nbsp;</td>
+
+  </tr>
+</table>
+</div>
+</body>
+	<script type="text/JavaScript">
+    var hightlow_a;
+    var hightlow_b;
+    var hightlow_x;
+    var hightlow_y;
+    var onoff_a;
+    var onoff_b;
+    var onoff_x;
+   	var onoff_y;
+    var on_a=0;
+    var on_b=0;
+    var on_x=0;
+    var on_y=0;
+    var io_a=1;
+    var io_b=2;
+    var io_x=3;
+    var io_y=4;
+    function init()
+    {
+        hightlow_a=0;
+		hightlow_b=0;
+		hightlow_x=0;
+		hightlow_y=0;
+		onoff_a=0;
+		onoff_b=0;
+		onoff_x=0;
+		onoff_y=0;
+		on_a=0;
+		on_b=0;
+		on_x=0;
+		on_y=0;
+		io_a=1;
+		io_b=2;
+		io_x=3;
+		io_y=4;
+    }
+    function stop()
+    {
+        var carMove = '';
+        //var carWait = 0;
+        var resource;
+        if(typeof ActiveXObject == 'undefined'){
+            resource = new XMLHttpRequest();
+        }
+        else{
+            // IE
+            resource = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        
+        
+        carMove='http://192.168.8.1/cgi-bin/car_python/h_a';
+        
+        try{
+            resource.open('GET', carMove, true);
+            resource.send(null);
+        }
+        catch(e){
+        }    	
+    }
+    function goforward(){
+        var carMove = '';
+        //var carWait = 0;
+        var resource;
+        if(typeof ActiveXObject == 'undefined'){
+            resource = new XMLHttpRequest();
+        }
+        else{
+            // IE
+            resource = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        
+        var distance = 45;
+        carMove='http://192.168.8.1/cgi-bin/car_python/u';
+        
+        try{
+            resource.open('GET', carMove, true);
+            resource.send(null);
+        }
+        catch(e){
+        }
+        
+    }
+
+    function gobackward(){
+        var carMove = '';
+        //var carWait = 0;
+        var resource;
+        if(typeof ActiveXObject == 'undefined'){
+            resource = new XMLHttpRequest();
+        }
+        else{
+            // IE
+            resource = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        
+        var distance = -45;
+        carMove='http://192.168.8.1/cgi-bin/car_python/d';
+        
+        try{
+            resource.open('GET', carMove, true);
+            resource.send(null);
+        }
+        catch(e){
+        }
+    }
+
+    function goleft(){
+        var carMove = '';
+        //var carWait = 0;
+        var resource;
+        if(typeof ActiveXObject == 'undefined'){
+            resource = new XMLHttpRequest();
+        }
+        else{
+            // IE
+            resource = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        
+        var argle = -90;
+        carMove='http://192.168.8.1/cgi-bin/car_python/l';
+        
+        try{
+            resource.open('GET', carMove, true);
+            resource.send(null);
+        }
+        catch(e){
+        }
+    }
+
+    function goright(){
+        var carMove = '';
+        //var carWait = 0;
+        var resource;
+        if(typeof ActiveXObject == 'undefined'){
+            resource = new XMLHttpRequest();
+        }
+        else{
+            // IE
+            resource = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        
+        var argle = 90;
+        carMove='http://192.168.8.1/cgi-bin/car_python/r';
+        
+        try{
+            resource.open('GET', carMove, true);
+            resource.send(null);
+        }
+        catch(e){
+        }
+        
+    }
+    
+	function outputonoff(btn)
+	{
+		switch(btn)
+		{
+		case 'a':
+			if(onoff_a==0)
+			{
+				var setio="/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_a+"&num1="+on_a+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_a+"&num1="+on_a+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+				on_a=1-on_a;
+			}
+			break;
+		case 'b':
+			if(onoff_b==0)
+			{
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_b+"&num1="+on_b+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_b+"&num1="+on_b+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+				on_b=1-on_b;
+			}
+			break;		
+		case 'x':
+			if(onoff_x==0)
+			{
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_x+"&num1="+on_x+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_x+"&num1="+on_x+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+				on_x=1-on_x;
+			}
+			break;		
+		case 'y':
+			if(onoff_y==0)
+			{
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_y+"&num1="+on_y+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_y+"&num1="+on_y+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+				on_y=1-on_y;
+			}
+			break;		
+		}
+	}
+	function outputon(btn)
+	{
+		switch(btn)
+		{
+		case 'a':
+			if(onoff_a==1)
+			{
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_a+"&num1="+hightlow_a+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_a+"&num1="+hightlow_a+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;
+		case 'b':
+			if(onoff_b==1)
+			{
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_b+"&num1="+hightlow_b+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_b+"&num1="+hightlow_b+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;		
+		case 'x':
+			if(onoff_x==1)
+			{
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_x+"&num1="+hightlow_x+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_x+"&num1="+hightlow_x+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;		
+		case 'y':
+			if(onoff_y==1)
+			{
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_y+"&num1="+hightlow_y+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_y+"&num1="+hightlow_y+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;		
+		}
+	}
+	function outputoff(btn)
+	{
+		switch(btn)
+		{
+		case 'a':
+			if(onoff_a==1)
+			{
+				var on=1-hightlow_a;
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_a+"&num1="+on+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_a+"&num1="+on+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;
+		case 'b':
+			if(onoff_b==1)
+			{
+				var on=1-hightlow_b;
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_b+"&num1="+on+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_b+"&num1="+on+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;		
+		case 'x':
+			if(onoff_x==1)
+			{
+				var on=1-hightlow_x;
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_x+"&num1="+on+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_x+"&num1="+on+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;		
+		case 'y':
+			if(onoff_y==1)
+			{
+				var on=1-hightlow_y;
+				var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_y+"&num1="+on+"&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=digital_write&io="+io_y+"&num1="+on+"&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });
+			}
+			break;		
+		}
+	}
+	function setgpio(name)
+	{
+		var io= Number(document.getElementsByName(name)[0].value);
+		var setio="http://192.168.8.1/cgi-bin/blockly_python/setdunio?type=iosetgpio&io="+io+"&num1=1&num2=0";
+                $.ajax({
+                type: "GET",
+                async:true,
+                url: "/cgi-bin/blockly_python/setdunio?type=iosetgpio&io="+io+"&num1=1&num2=0",
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function(json) {
+                  },
+                error: function(error) {
+                    alert(json);
+                  }
+                });	
+		switch(name)
+		{
+		case 'bottona':
+			io_a=io;
+			break;
+		case 'bottonb':
+			io_b=io;
+			break;
+		case 'bottonx':
+			io_x=io;
+			break;
+		case 'bottony':
+			io_y=io;
+			break;
+		}
+	}
+	function sethighlow(name)
+	{
+		var highlow= Number(document.getElementsByName(name)[0].checked);
+		switch (name)
+		{
+		case 'switcha_high':
+			hightlow_a=highlow;
+			break;
+		case 'switchb_high':
+			hightlow_b=highlow;
+			break;		
+		case 'switchx_high':
+			hightlow_x=highlow;
+			break;		
+		case 'switchy_high':
+			hightlow_y=highlow;
+			break;		
+		}
+	}
+	function setonoff(name)
+	{
+		var onoff=  Number(document.getElementsByName(name)[0].checked);
+		switch (name)
+		{
+		case 'switcha_on':
+			onoff_a=onoff;
+			break;
+		case 'switchb_on':
+			onoff_b=onoff;
+			break;		
+		case 'switchx_on':
+			onoff_x=onoff;
+			break;		
+		case 'switchy_on':
+			onoff_y=onoff;
+			break;		
+		}		
+	}
+    </script>
+</html>

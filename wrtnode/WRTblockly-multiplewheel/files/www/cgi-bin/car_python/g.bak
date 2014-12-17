@@ -1,0 +1,50 @@
+#!/usr/bin/python
+#! encoding:utf-8
+# Filename : socket_echo_udp_server_dgram.py
+# import socket
+import sys
+import serial
+import binascii
+import time
+import cgi
+def hexShow(argv):  
+    result = ''  
+    hLen = len(argv)  
+    for i in xrange(hLen):  
+        hvol = ord(argv[i])  
+        hhex = '%02x'%hvol  
+        result += hhex+' '  
+    print 'result:',result
+
+def getcheck(argv):  
+    result =0
+    hLen = len(argv)
+    for i in xrange(hLen-4):
+        hvol = ord(argv[i+4]) 
+        result=result^hvol
+    result=unichr(result)
+    return(result)
+print "Content-Type: application/json\n"  
+ser = serial.Serial("/dev/ttyS0", 57600, timeout=0.02)
+ser.open()
+form = cgi.FieldStorage()
+if form.has_key("value"):
+	value=form["value"].value
+	value=int(value)*100
+else:
+	value=-80
+if value>0:
+	value1="%04d"%value
+	sel="$M<\x05u"+value1+"\x00"
+	chechnum=getcheck(sel)
+	sel=sel+str(chechnum)
+	ser.write(sel)
+else:
+	value=-value
+	value1="%04d"%value
+	sel="$M<\x05d"+value1+"\x00"
+	chechnum=getcheck(sel)
+	sel=sel+str(chechnum)
+	ser.write(sel)	
+ser.close
+print '''{"result":"error"}'''

@@ -1,0 +1,52 @@
+#!/usr/bin/python
+#! encoding:utf-8
+# Filename : socket_echo_udp_server_dgram.py
+# import socket
+import sys
+import os
+import re
+import cgi
+import binascii
+import serial
+import time
+
+def hexShow(argv):  
+    result = ''  
+    hLen = len(argv)  
+    for i in xrange(hLen):  
+        hvol = ord(argv[i])  
+        hhex = '%02x'%hvol  
+        result += hhex+' '  
+    print 'result:',result
+
+def getcheck(argv):  
+    result =0
+    hLen = len(argv)
+    for i in xrange(hLen-4):
+        hvol = ord(argv[i+4]) 
+        result=result^hvol
+    result=unichr(result)
+    return(result)
+# open serial port
+ser = serial.Serial("/dev/ttyACM0", 115200, timeout=0.005)
+ser.open()
+print "Content-Type: application/json"
+print ""
+ionum='11'
+num1='1'
+num2='0'
+sel="\x24\x4d\x3c\x03\x0B"+chr(int(ionum))+"\x00\x01"
+chechnum=getcheck(sel)
+sel=sel+str(chechnum)
+hexShow(sel)
+ser.write(sel)
+time.sleep(1)
+num1='0'
+num2='0'
+sel=sel="\x24\x4d\x3c\x02\x0C"+chr(int(ionum))+chr(int(num1))
+chechnum=getcheck(sel)
+sel=sel+str(chechnum)
+hexShow(sel)
+ser.write(sel)
+print '''{}'''
+ser.close()

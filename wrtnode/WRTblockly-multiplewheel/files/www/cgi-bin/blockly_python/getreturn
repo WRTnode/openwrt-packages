@@ -1,0 +1,135 @@
+#!/usr/bin/python
+#! encoding:utf-8
+# Filename : socket_echo_udp_server_dgram.py
+# import socket
+import sys
+import os
+import re
+import cgi
+import binascii
+import serial
+import time
+import json
+def station(argv):  
+    result = ''  
+    hLen = len(argv)
+    if (hLen==12):
+        humi1 = ord(argv[5])
+        temp1 = ord(argv[6])
+        for i in xrange(4):  
+            hvol = ord(argv[i+7])
+            hhex = '%02x'%hvol
+            result += hhex
+            pres1=int(result,16)
+    else:
+        humi1=0
+        temp1=0
+        pres1=0  
+    return(humi1,temp1,pres1)
+
+def dist(argv):  
+    dis=ord(argv[9])
+    return(dis)
+# This class provides the functionality we want. You only need to look at
+# this if you want to know how this works. It only needs to be defined
+# once, no need to muck around with its internals.
+class switch(object):
+    def __init__(self, value):
+        self.value = value
+        self.fall = False
+    def __iter__(self):
+        """Return the match method once, then stop"""
+        yield self.match
+        raise StopIteration
+    def match(self, *args):
+        """Indicate whether or not to enter a case suite"""
+        if self.fall or not args:
+            return True
+        elif self.value in args: # changed for v1.5, see below
+            self.fall = True
+            return True
+        else:
+            return False
+
+
+# open serial port
+info = open("/www/cgi-bin/blockly_info/intiinfo", "r")
+line = info.readline()
+ttyjson= json.loads(line)
+ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=0.005)
+ser.open()
+#ser.write("\x48\x59\x3c\x00\x04\x04")
+#aa=ser.readline()
+#time.sleep( 1 )
+ser.write("\x48\x59\x3c\x00\x06\x06")    
+aa=ser.readline()
+humi,temp,pres=station(aa)
+print "Content-Type: application/json"
+print ""
+#print """{"humi":%s,"temp":%s,"pres":%s}""" % ( humi, temp, pres)
+
+
+
+
+
+form = cgi.FieldStorage()
+if form.has_key("type") and form.has_key("type"):
+    type=form["type"].value
+    
+    v = 'ten'
+    for case in switch(type):
+        if case('humi'):
+            if ttyjson["Weather_Station"]:
+                ttynum=ttyjson["Weather_Station"]["tty"]
+                ser = serial.Serial("/dev/"+ttynum, 115200, timeout=0.005)
+                ser.open()
+                ser.write("\x48\x59\x3c\x00\x06\x06")
+                aa=ser.readline()
+                humi,temp,pres=station(aa)
+                ans=humi 
+            else:
+                ans=0                     
+            break
+        if case('temp'):
+            if ttyjson["Weather_Station"]:
+                ttynum=ttyjson["Weather_Station"]["tty"]
+                ser = serial.Serial("/dev/"+ttynum, 115200, timeout=0.005)
+                ser.open()
+                ser.write("\x48\x59\x3c\x00\x06\x06")
+                aa=ser.readline()
+                humi,temp,pres=station(aa)
+                ans=temp 
+            else:
+                ans=0 
+            break
+        if case('pres'):
+            if ttyjson["Weather_Station"]:
+                ttynum=ttyjson["Weather_Station"]["tty"]
+                ser = serial.Serial("/dev/"+ttynum, 115200, timeout=0.005)
+                ser.open()
+                ser.write("\x48\x59\x3c\x00\x06\x06")
+                aa=ser.readline()
+                humi,temp,pres=station(aa)
+                ans=humi 
+            else:
+                ans=0 
+            break
+        if case('dist'):
+            if ttyjson["Rangefinder"]:
+                ttynum=ttyjson["Rangefinder"]["tty"]
+                ser = serial.Serial("/dev/"+ttynum, 115200, timeout=0.005)
+                ser.open()
+                ser.write("\x48\x59\x3c\x00\x06\x06")
+                aa=ser.readline()
+                distnum=dist(aa)
+                ans=distnum 
+            else:
+                ans=0            
+            break
+        if case(): # default, could also just omit condition or 'if True'
+            print "something else!"
+            # No need to break here, it'll stop anyway
+    
+    print'''{"result":"success","temp":%s}'''% (ans)
+else:
+    print '''{"result":"error"}'''

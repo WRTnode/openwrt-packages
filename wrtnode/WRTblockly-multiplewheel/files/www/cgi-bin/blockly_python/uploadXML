@@ -1,0 +1,19 @@
+#!/usr/bin/python
+#! encoding:utf-8
+import sys
+import os
+import re
+import cgi
+import binascii
+print "Content-Type: application/json\n"
+form = cgi.FieldStorage()
+if form.has_key("text") and form.has_key("name"):
+    xml_text=form["text"].value
+    file_name=form["name"].value
+    file_path="/www/blockly/xml/"+file_name
+    info = open(file_path, "w")
+    info.write(xml_text)
+    info.close()
+    print'''{"result":"success"}'''
+else:
+    print '''{"result":"error"}'''
