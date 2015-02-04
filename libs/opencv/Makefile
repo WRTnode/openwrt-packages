@@ -12,7 +12,7 @@ PKG_VERSION:=2.4.10
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).zip
-PKG_SOURCE_URL:=http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/2.4.10/
+PKG_SOURCE_URL:=http://sourceforge.net/projects/opencvlibrary/files/opencv-unix/$(PKG_VERSION)/
 PKG_MD5SUM:=ec63952d3a3dff965d5fdde765926821
 
 PKG_LICENSE:=BSD-3-Clause
@@ -34,7 +34,7 @@ endef
 define Package/opencv
   SECTION:=libs
   CATEGORY:=Libraries
-  TITLE:=opencv-2.4.10
+  TITLE:=OpenCV
   URL:=http://opencv.org/
   MAINTAINER:=WRTnode Team <pub@wrtnode.com>
   DEPENDS:=+libpthread +librt +libstdcpp +zlib +libjpeg 
