@@ -14,8 +14,8 @@ $(PROGS): $(OBJS)
 	$(CC) -c $(CFLAGS) $^ -o $@
 
 install: $(PROGS)
-        $(INSTALL) -d $(INSTDIR)
-        $(INSTALL) -m $(INSTMODE) -o $(INSTOWNER) -g $(INSTGROUP) $(PROGS) $(INSTDIR)
+	$(INSTALL) -d $(INSTDIR)
+	$(INSTALL) -m $(INSTMODE) -o $(INSTOWNER) -g $(INSTGROUP) $(PROGS) $(INSTDIR)
 
 clean:
 	rm -f $(PROGS) *.o
