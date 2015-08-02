@@ -31,23 +31,28 @@ static int posix_serial_open(struct posix_serial* s)
     }
     //can not open posix serial port twice.
     if(s->sb->is_open(s->sb)) {
+		printf("open fail2\n");
         ret = -POSIX_SERIAL_ERR_OPEN;
         goto POSIX_SERIAL_OPEN_REOPEN_ERROR;
     }
     //check base serial parameters.
     if(!IS_SERIAL_BAUD(s->sb->baudrate)) {
+		printf("open fail3\n");
         ret = -POSIX_SERIAL_ERR_PARA;
         goto POSIX_SERIAL_OPEN_PARAMETER_ERROR;
     }
     if(!IS_SERIAL_BITS(s->sb->bytesize)) {
+		printf("open fail4\n");
         ret = -POSIX_SERIAL_ERR_PARA;
         goto POSIX_SERIAL_OPEN_PARAMETER_ERROR;
     }
     if(!IS_SERIAL_PARITY(s->sb->parity)) {
+		printf("open fail5\n");
         ret = -POSIX_SERIAL_ERR_PARA;
         goto POSIX_SERIAL_OPEN_PARAMETER_ERROR;
     }
     if(!IS_SERIAL_STOP(s->sb->stopbits)) {
+		printf("open fail6\n");
         ret = -POSIX_SERIAL_ERR_PARA;
         goto POSIX_SERIAL_OPEN_PARAMETER_ERROR;
     }
@@ -55,6 +60,7 @@ static int posix_serial_open(struct posix_serial* s)
     //open posix serial port
     s->fd = open(s->sb->get_port(s->sb), O_RDWR | O_NOCTTY | O_NONBLOCK);
     if(s->fd < 0) {
+		printf("open fail\n");
         ret = -POSIX_SERIAL_ERR_OPEN;
         goto POSIX_SERIAL_OPEN_OPEN_ERROR;
     }
@@ -94,6 +100,7 @@ POSIX_SERIAL_OPEN_OPEN_ERROR:
 POSIX_SERIAL_OPEN_PARAMETER_ERROR:
 POSIX_SERIAL_OPEN_REOPEN_ERROR:
 POSIX_SERIAL_OPEN_INPUT_ERROR:
+	printf("open port fail\n");
     return ret;
 }
 
@@ -472,22 +479,26 @@ POSIX_SERIAL_FLUSH_OUTPUT_INPUT_ERROR:
 */
 struct posix_serial* posix_serial_port_init(posix_serial_init_t* psp)
 {
+	printf("posix_serial_port_init\n");
     serial_init_t* sp = NULL;
     struct posix_serial* ps = NULL;
 
     if (NULL==psp) {
+		printf("fail1\n");
         goto POSIX_SERIAL_PORT_INIT_INPUT_ERROR;
     }
 
     /* malloc a posix_serial port */
     ps = (struct posix_serial*)malloc(1*sizeof(struct posix_serial));
     if(NULL==ps) {
+		printf("fail2\n");
         goto POSIX_SERIAL_PORT_INIT_MALLOC_PS_ERROR;
     }
     /* copy basic serial init values and ini basic serial */
     sp = &psp->sp;
     ps->sb = base_serial_port_init(sp);
     if(NULL==ps->sb) {
+		printf("fail3\n");
         goto POSIX_SERIAL_PORT_INIT_INIT_SB_ERROR;
     }
     /* init all posix serial parameters */
