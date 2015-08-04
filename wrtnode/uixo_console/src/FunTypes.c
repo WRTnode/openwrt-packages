@@ -100,6 +100,7 @@ int FunTypes(struct list_head* list,uixo_message_list_t* onemsg,char* fn_name){
 		list_for_each_entry(p,list,list){
 			if(strcmp(p->name,onemsg->port_name)==0){
 				PR_DEBUG("strcmp p->msg_clinet->msg.port_name = %s\n",onemsg->port_name);
+                PR_DEBUG("rttimes = %d\n",onemsg->rttimes);
 				if(onemsg->rttimes == -2){
 					//delete对应msg
 					PR_DEBUG("del msg\n");

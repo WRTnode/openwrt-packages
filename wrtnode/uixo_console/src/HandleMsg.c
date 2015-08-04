@@ -166,6 +166,7 @@ int uixo_transmit_data(uixo_port_t* p, const uixo_message_list_t* msg)
 	    PR_DEBUG("send to port data = %s and len = %d",msg->data,msg->len);
         int writen = 0;
         writen = sm->write(sm, msg->data, msg->len);
+        printf("write to SPI = %s\n", msg->data);
 	    if(writen < 0) {
 		    printf("make message failed\n");
 		    return -1;
