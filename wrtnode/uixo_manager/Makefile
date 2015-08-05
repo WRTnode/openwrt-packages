@@ -19,7 +19,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/uixo_manager
   SECTION:=uixo_manager
   CATEGORY:=WRTnode
-  TITLE:=UIxO manager 
+  TITLE:=UIxO manager
   DEPENDS:=+libubox +libubus +libblobmsg-json
 endef
 
@@ -27,15 +27,11 @@ define Package/uixo_manager/description
   UIxO manager
 endef
 
-define Package/ser2net/conffiles
-/etc/uixo/uixo_console.conf
-endef
-
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	$(CP) ./src/* $(PKG_BUILD_DIR)/
 endef
-     
+
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) CFLAGS="$(TARGET_CFLAGS)"
@@ -45,8 +41,6 @@ define Package/uixo_manager/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/uixo_manager $(1)/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/uixo_manager_fork_object $(1)/bin/
-	$(INSTALL_DIR) $(1)/etc/uixo
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/uixo_console.conf $(1)/etc/uixo/
 endef
 
 $(eval $(call BuildPackage,uixo_manager))
