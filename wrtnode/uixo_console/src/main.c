@@ -89,7 +89,8 @@ static uixo_err_t ReadPort(struct list_head* list)
         return -UIXO_ERR_NULL;
     }
     list_for_each_entry(port, list, list) {
-        if(strncmp(port->name,"/dev/tty",8)==0){
+        if((strncmp(port->name,"/dev/tty",8)==0) ||
+           (strncmp(port->name,"/dev/spi",strlen("/dev/spi"))==0)){
             if((ret=uixo_rx_handler(port,NULL)) < 0) {
                 printf("uixo rx handler err\n");
                 return -LOOP_UIXO_RX_HANDLER_ERROR;
@@ -190,7 +191,7 @@ int main (int argc, char* argv[])
         }
         else if(ret == 0){
             for(i=0;i<connct_num;i++){
-                /* ReadPort(&uixo_ports_head); */
+                ReadPort(&uixo_ports_head);
             }
             usleep(5000);
             continue;

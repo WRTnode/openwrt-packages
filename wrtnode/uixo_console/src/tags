@@ -1,0 +1,375 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+BACKLOG	main.c	38;"	d	file:
+Callback	FunTypes.c	/^	char Callback[20];$/;"	m	struct:__anon13	file:
+DELCLOSEFD	main.c	40;"	d	file:
+DugPrintg	uixo_console.h	25;"	d
+FunTypes	FunTypes.c	/^int FunTypes(struct list_head* list,uixo_message_list_t* onemsg,char* fn_name){$/;"	f
+INIT_LIST_HEAD	list.h	/^INIT_LIST_HEAD(struct list_head *list)$/;"	f
+IS_SERIAL_BAUD	serial.h	54;"	d
+IS_SERIAL_BITS	serial.h	38;"	d
+IS_SERIAL_PARITY	serial.h	28;"	d
+IS_SERIAL_STOP	serial.h	64;"	d
+LIST_HEAD	list.h	51;"	d
+LIST_HEAD	list.h	52;"	d
+LIST_HEAD_INIT	list.h	50;"	d
+LOOP_UIXO_RX_HANDLER_ERROR	uixo_console.h	/^	LOOP_UIXO_RX_HANDLER_ERROR,$/;"	e	enum:__anon14
+LOOP_UIXO_TX_HANDLER_ERROR	uixo_console.h	/^	LOOP_UIXO_TX_HANDLER_ERROR,$/;"	e	enum:__anon14
+MAX	main.c	36;"	d	file:
+MAX_UIXO_MSG_LEN	uixo_console.h	21;"	d
+MIN	main.c	37;"	d	file:
+OBJS	Makefile	/^OBJS = main.o uixo_console.o serial.o serial_posix.o ParseString.o FunTypes.o HandlePort.o HandleMsg.o spi.o spi_mt7688.o$/;"	m
+OTHERDEL	FunTypes.c	18;"	d	file:
+OTHERDEL	HandleMsg.c	21;"	d	file:
+PORT	main.c	28;"	d	file:
+PORT_NUM	main.c	39;"	d	file:
+POSIX_SERIAL_ERR_DRAIN	serial_posix.h	/^    POSIX_SERIAL_ERR_DRAIN,$/;"	e	enum:__anon8
+POSIX_SERIAL_ERR_FD	serial_posix.h	/^    POSIX_SERIAL_ERR_FD,$/;"	e	enum:__anon8
+POSIX_SERIAL_ERR_LAST	serial_posix.h	/^    POSIX_SERIAL_ERR_LAST$/;"	e	enum:__anon8
+POSIX_SERIAL_ERR_OPEN	serial_posix.h	/^    POSIX_SERIAL_ERR_OPEN = (int)SERIAL_ERR_LAST,$/;"	e	enum:__anon8
+POSIX_SERIAL_ERR_PARA	serial_posix.h	/^    POSIX_SERIAL_ERR_PARA,$/;"	e	enum:__anon8
+POSIX_SERIAL_ERR_READ	serial_posix.h	/^    POSIX_SERIAL_ERR_READ,$/;"	e	enum:__anon8
+POSIX_SERIAL_ERR_SETTING	serial_posix.h	/^    POSIX_SERIAL_ERR_SETTING,$/;"	e	enum:__anon8
+POSIX_SERIAL_ERR_WRITE	serial_posix.h	/^    POSIX_SERIAL_ERR_WRITE,$/;"	e	enum:__anon8
+PROGS	Makefile	/^PROGS     = uixo_console$/;"	m
+PR_DEBUG	uixo_console.h	27;"	d
+PR_DEBUG	uixo_console.h	29;"	d
+ReadPort	FunTypes.c	/^void* ReadPort(void* arg)$/;"	f
+ReadPort	main.c	/^static uixo_err_t ReadPort(struct list_head* list)$/;"	f	file:
+SERIAL_BAUD_115200	serial.h	/^    SERIAL_BAUD_115200,$/;"	e	enum:__anon3
+SERIAL_BAUD_1200	serial.h	/^    SERIAL_BAUD_1200 = 0,$/;"	e	enum:__anon3
+SERIAL_BAUD_19200	serial.h	/^    SERIAL_BAUD_19200,$/;"	e	enum:__anon3
+SERIAL_BAUD_2400	serial.h	/^    SERIAL_BAUD_2400,$/;"	e	enum:__anon3
+SERIAL_BAUD_38400	serial.h	/^    SERIAL_BAUD_38400,$/;"	e	enum:__anon3
+SERIAL_BAUD_4800	serial.h	/^    SERIAL_BAUD_4800,$/;"	e	enum:__anon3
+SERIAL_BAUD_57600	serial.h	/^    SERIAL_BAUD_57600,$/;"	e	enum:__anon3
+SERIAL_BAUD_9600	serial.h	/^    SERIAL_BAUD_9600,$/;"	e	enum:__anon3
+SERIAL_BAUD_DEFAULT	serial.h	/^    SERIAL_BAUD_DEFAULT = SERIAL_BAUD_57600$/;"	e	enum:__anon3
+SERIAL_BAUD_INVALID	serial.h	/^    SERIAL_BAUD_INVALID,$/;"	e	enum:__anon3
+SERIAL_BITS_7	serial.h	/^    SERIAL_BITS_7 = 0,$/;"	e	enum:__anon2
+SERIAL_BITS_8	serial.h	/^    SERIAL_BITS_8,$/;"	e	enum:__anon2
+SERIAL_BITS_DEFAULT	serial.h	/^    SERIAL_BITS_DEFAULT = SERIAL_BITS_8$/;"	e	enum:__anon2
+SERIAL_BITS_INVALID	serial.h	/^    SERIAL_BITS_INVALID,$/;"	e	enum:__anon2
+SERIAL_ERR_INPUT_NULL	serial.h	/^    SERIAL_ERR_INPUT_NULL,$/;"	e	enum:__anon6
+SERIAL_ERR_LAST	serial.h	/^    SERIAL_ERR_LAST$/;"	e	enum:__anon6
+SERIAL_ERR_MEM	serial.h	/^    SERIAL_ERR_MEM,$/;"	e	enum:__anon6
+SERIAL_ERR_NODEV	serial.h	/^    SERIAL_ERR_NODEV = 1,$/;"	e	enum:__anon6
+SERIAL_ERR_NOT_SUPPORT	serial.h	/^    SERIAL_ERR_NOT_SUPPORT,$/;"	e	enum:__anon6
+SERIAL_PARITY_DEFAULT	serial.h	/^    SERIAL_PARITY_DEFAULT = SERIAL_PARITY_NONE$/;"	e	enum:__anon1
+SERIAL_PARITY_EVEN	serial.h	/^    SERIAL_PARITY_EVEN,$/;"	e	enum:__anon1
+SERIAL_PARITY_INVALID	serial.h	/^    SERIAL_PARITY_INVALID,$/;"	e	enum:__anon1
+SERIAL_PARITY_NONE	serial.h	/^    SERIAL_PARITY_NONE = 0,$/;"	e	enum:__anon1
+SERIAL_PARITY_ODD	serial.h	/^    SERIAL_PARITY_ODD,$/;"	e	enum:__anon1
+SERIAL_STOPBIT_1	serial.h	/^    SERIAL_STOPBIT_1 = 0,$/;"	e	enum:__anon4
+SERIAL_STOPBIT_2	serial.h	/^    SERIAL_STOPBIT_2,$/;"	e	enum:__anon4
+SERIAL_STOPBIT_DEFAULT	serial.h	/^    SERIAL_STOPBIT_DEFAULT = SERIAL_STOPBIT_1$/;"	e	enum:__anon4
+SERIAL_STOPBIT_INVALID	serial.h	/^    SERIAL_STOPBIT_INVALID,$/;"	e	enum:__anon4
+SPI_BAUDRATE_DEFAULT	spi.c	20;"	d	file:
+SPI_BYTESIZE_DEFAULT	spi.c	21;"	d	file:
+SPI_ERR_INPUT_NULL	spi.h	/^    SPI_ERR_INPUT_NULL,$/;"	e	enum:__anon10
+SPI_ERR_LAST	spi.h	/^    SPI_ERR_LAST$/;"	e	enum:__anon10
+SPI_ERR_MEM	spi.h	/^    SPI_ERR_MEM,$/;"	e	enum:__anon10
+SPI_ERR_NODEV	spi.h	/^    SPI_ERR_NODEV = 1,$/;"	e	enum:__anon10
+SPI_ERR_NOT_SUPPORT	spi.h	/^    SPI_ERR_NOT_SUPPORT,$/;"	e	enum:__anon10
+SPI_MCU_CHECK_STATUS_DELAY_US	spi_mt7688.c	34;"	d	file:
+SPI_MCU_READ	spi_mt7688.c	21;"	d	file:
+SPI_MCU_READ_DELAY_US	spi_mt7688.c	32;"	d	file:
+SPI_MCU_READ_LEN	spi_mt7688.c	22;"	d	file:
+SPI_MCU_READ_STATUS	spi_mt7688.c	25;"	d	file:
+SPI_MCU_WRITE	spi_mt7688.c	23;"	d	file:
+SPI_MCU_WRITE_DELAY_US	spi_mt7688.c	33;"	d	file:
+SPI_MCU_WRITE_LEN	spi_mt7688.c	24;"	d	file:
+SPI_MT7688_ERR_DRAIN	spi_mt7688.h	/^    SPI_MT7688_ERR_DRAIN,$/;"	e	enum:__anon17
+SPI_MT7688_ERR_FD	spi_mt7688.h	/^    SPI_MT7688_ERR_FD,$/;"	e	enum:__anon17
+SPI_MT7688_ERR_LAST	spi_mt7688.h	/^    SPI_MT7688_ERR_LAST$/;"	e	enum:__anon17
+SPI_MT7688_ERR_OPEN	spi_mt7688.h	/^    SPI_MT7688_ERR_OPEN = (int)SPI_ERR_LAST,$/;"	e	enum:__anon17
+SPI_MT7688_ERR_PARA	spi_mt7688.h	/^    SPI_MT7688_ERR_PARA,$/;"	e	enum:__anon17
+SPI_MT7688_ERR_READ	spi_mt7688.h	/^    SPI_MT7688_ERR_READ,$/;"	e	enum:__anon17
+SPI_MT7688_ERR_SETTING	spi_mt7688.h	/^    SPI_MT7688_ERR_SETTING,$/;"	e	enum:__anon17
+SPI_MT7688_ERR_WRITE	spi_mt7688.h	/^    SPI_MT7688_ERR_WRITE,$/;"	e	enum:__anon17
+SPI_STATUS_7688_READ_FROM_STM32_E	spi_mt7688.c	26;"	d	file:
+SPI_STATUS_7688_READ_FROM_STM32_NE	spi_mt7688.c	27;"	d	file:
+SPI_STATUS_7688_WRITE_TO_STM32_F	spi_mt7688.c	28;"	d	file:
+SPI_STATUS_7688_WRITE_TO_STM32_NF	spi_mt7688.c	29;"	d	file:
+SPI_STATUS_OK	spi_mt7688.c	30;"	d	file:
+TraverseMsg	HandleMsg.c	/^int TraverseMsg (struct list_head* list)$/;"	f
+TraversePort	HandleMsg.c	/^int TraversePort (struct list_head* list)$/;"	f
+UIXO_CMD_STATUS_GOT_CMD	HandleMsg.c	/^	UIXO_CMD_STATUS_GOT_CMD$/;"	e	enum:uixo_cmd_status	file:
+UIXO_CMD_STATUS_GOT_LEN	HandleMsg.c	/^	UIXO_CMD_STATUS_GOT_LEN,$/;"	e	enum:uixo_cmd_status	file:
+UIXO_CMD_STATUS_IDLE	HandleMsg.c	/^	UIXO_CMD_STATUS_IDLE = 0,$/;"	e	enum:uixo_cmd_status	file:
+UIXO_CONSOLE_ERR_INPUT_NULL	uixo_console.h	/^    UIXO_CONSOLE_ERR_INPUT_NULL = 1,$/;"	e	enum:__anon14
+UIXO_CONSOLE_ERR_LOAD_CMD	uixo_console.h	/^    UIXO_CONSOLE_ERR_LOAD_CMD,$/;"	e	enum:__anon14
+UIXO_CONSOLE_ERR_MEM	uixo_console.h	/^    UIXO_CONSOLE_ERR_MEM,$/;"	e	enum:__anon14
+UIXO_CONSOLE_ERR_PROC_MSG	uixo_console.h	/^    UIXO_CONSOLE_ERR_PROC_MSG,$/;"	e	enum:__anon14
+UIXO_CONSOLE_ERR_READ_PORT	uixo_console.h	/^    UIXO_CONSOLE_ERR_READ_PORT,$/;"	e	enum:__anon14
+UIXO_CONSOLE_ERR_SAVE_CMD	uixo_console.h	/^    UIXO_CONSOLE_ERR_SAVE_CMD,$/;"	e	enum:__anon14
+UIXO_CONSOLE_ERR_STATUS	uixo_console.h	/^    UIXO_CONSOLE_ERR_STATUS,$/;"	e	enum:__anon14
+UIXO_CONSOLE_ERR_WRITE_PORT	uixo_console.h	/^    UIXO_CONSOLE_ERR_WRITE_PORT,$/;"	e	enum:__anon14
+UIXO_ERR_FIFO	uixo_console.h	/^	UIXO_ERR_FIFO,$/;"	e	enum:__anon14
+UIXO_ERR_NULL	uixo_console.h	/^	UIXO_ERR_NULL,$/;"	e	enum:__anon14
+UIXO_ERR_OK	uixo_console.h	/^	UIXO_ERR_OK = 0,$/;"	e	enum:__anon14
+UIXO_ERR_SELECT	uixo_console.h	/^	UIXO_ERR_SELECT = UIXO_CONSOLE_ERR_INPUT_NULL,$/;"	e	enum:__anon14
+UIXO_ERR_SERIAL_INIT_ERR	uixo_console.h	/^	UIXO_ERR_SERIAL_INIT_ERR,$/;"	e	enum:__anon14
+UIXO_ERR_SERIAL_OPEN_ERR	uixo_console.h	/^	UIXO_ERR_SERIAL_OPEN_ERR,$/;"	e	enum:__anon14
+UIXO_RX_STATUS_GOT_HEAD	HandleMsg.c	/^	UIXO_RX_STATUS_GOT_HEAD,$/;"	e	enum:uixo_rx_status	file:
+UIXO_RX_STATUS_GOT_INVALID	HandleMsg.c	/^	UIXO_RX_STATUS_GOT_INVALID,$/;"	e	enum:uixo_rx_status	file:
+UIXO_RX_STATUS_GOT_MSG	HandleMsg.c	/^	UIXO_RX_STATUS_GOT_MSG$/;"	e	enum:uixo_rx_status	file:
+UIXO_RX_STATUS_IDLE	HandleMsg.c	/^	UIXO_RX_STATUS_IDLE = 0,$/;"	e	enum:uixo_rx_status	file:
+_LINUX_LIST_H_	list.h	30;"	d
+__SERIAL_H__	serial.h	10;"	d
+__SERIAL_POSIX_H__	serial_posix.h	11;"	d
+__SPI_H__	spi.h	10;"	d
+__SPI_MT7688_H__	spi_mt7688.h	11;"	d
+__UIXO_CONSOLE_H__	uixo_console.h	10;"	d
+_clean_is_open	serial.c	/^static int _clean_is_open(struct serial_base* s)$/;"	f	file:
+_clean_is_open	spi.c	/^static int _clean_is_open(struct spi_base* s)$/;"	f	file:
+_clean_port	serial.c	/^static int _clean_port(struct serial_base* s)$/;"	f	file:
+_clean_port	spi.c	/^static int _clean_port(struct spi_base* s)$/;"	f	file:
+_get_baudrate	serial.c	/^static const char* _get_baudrate(struct serial_base* s)$/;"	f	file:
+_get_baudrate	spi.c	/^static int _get_baudrate(struct spi_base* s)$/;"	f	file:
+_get_bytesize	serial.c	/^static const char* _get_bytesize(struct serial_base* s)$/;"	f	file:
+_get_bytesize	spi.c	/^static int _get_bytesize(struct spi_base* s)$/;"	f	file:
+_get_parity	serial.c	/^static const char* _get_parity(struct serial_base* s)$/;"	f	file:
+_get_port	serial.c	/^static const char* _get_port(struct serial_base* s)$/;"	f	file:
+_get_port	spi.c	/^static const char* _get_port(struct spi_base* s)$/;"	f	file:
+_get_stopbits	serial.c	/^static const char* _get_stopbits(struct serial_base* s)$/;"	f	file:
+_get_supported_baudrate	serial.c	/^static const char** _get_supported_baudrate(struct serial_base* s)$/;"	f	file:
+_get_supported_bytesize	serial.c	/^static const char** _get_supported_bytesize(struct serial_base* s)$/;"	f	file:
+_get_supported_parity	serial.c	/^static const char** _get_supported_parity(struct serial_base* s)$/;"	f	file:
+_get_supported_stopbits	serial.c	/^static const char** _get_supported_stopbits(struct serial_base* s)$/;"	f	file:
+_get_timeout	serial.c	/^static float _get_timeout(struct serial_base* s)$/;"	f	file:
+_get_timeout	spi.c	/^static float _get_timeout(struct spi_base* s)$/;"	f	file:
+_is_open	serial.c	/^static int _is_open(struct serial_base* s)$/;"	f	file:
+_is_open	spi.c	/^static int _is_open(struct spi_base* s)$/;"	f	file:
+_list_add	list.h	/^_list_add(struct list_head *_new, struct list_head *prev,$/;"	f
+_list_del	list.h	/^_list_del(struct list_head *entry)$/;"	f
+_list_splice	list.h	/^_list_splice(const struct list_head *list, struct list_head *prev,$/;"	f
+_set_baudrate	serial.c	/^static int _set_baudrate(struct serial_base* s, const char* br)$/;"	f	file:
+_set_baudrate	spi.c	/^static int _set_baudrate(struct spi_base* s, const char* br)$/;"	f	file:
+_set_bytesize	serial.c	/^static int _set_bytesize(struct serial_base* s, const char* bs)$/;"	f	file:
+_set_bytesize	spi.c	/^static int _set_bytesize(struct spi_base* s, const char* bs)$/;"	f	file:
+_set_is_open	serial.c	/^static int _set_is_open(struct serial_base* s)$/;"	f	file:
+_set_is_open	spi.c	/^static int _set_is_open(struct spi_base* s)$/;"	f	file:
+_set_parity	serial.c	/^static int _set_parity(struct serial_base* s, const char* pa)$/;"	f	file:
+_set_port	serial.c	/^static int _set_port(struct serial_base* s, const char* name)$/;"	f	file:
+_set_port	spi.c	/^static int _set_port(struct spi_base* s, const char* name)$/;"	f	file:
+_set_stopbits	serial.c	/^static int _set_stopbits(struct serial_base* s, const char* sb)$/;"	f	file:
+_set_timeout	serial.c	/^static int _set_timeout(struct serial_base* s, const char* t)$/;"	f	file:
+_set_timeout	spi.c	/^static int _set_timeout(struct spi_base* s, const char* t)$/;"	f	file:
+base_serial_port_init	serial.c	/^struct serial_base* base_serial_port_init(serial_init_t* sp)$/;"	f
+base_spi_port_init	spi.c	/^struct spi_base* base_spi_port_init(spi_init_t* sp)$/;"	f
+baudrate	serial.h	/^    char*            baudrate;$/;"	m	struct:__anon7
+baudrate	serial.h	/^    serial_baud_t    baudrate;$/;"	m	struct:serial_base
+baudrate	spi.h	/^    char*            baudrate;$/;"	m	struct:__anon12
+baudrate	spi.h	/^    int              baudrate;$/;"	m	struct:spi_base
+baudrate	uixo_console.h	/^    char* baudrate;$/;"	m	struct:__anon16
+bytesize	serial.h	/^    char*            bytesize;$/;"	m	struct:__anon7
+bytesize	serial.h	/^    serial_bits_t    bytesize;$/;"	m	struct:serial_base
+bytesize	spi.h	/^    char*            bytesize;$/;"	m	struct:__anon12
+bytesize	spi.h	/^    int              bytesize;$/;"	m	struct:spi_base
+bytesize	uixo_console.h	/^    char* bytesize;$/;"	m	struct:__anon16
+clean_is_open	serial.h	/^    int          (*clean_is_open)(struct serial_base* s);$/;"	m	struct:serial_base
+clean_is_open	spi.h	/^    int          (*clean_is_open)(struct spi_base* s);$/;"	m	struct:spi_base
+clean_port	serial.h	/^    int          (*clean_port)(struct serial_base* s);$/;"	m	struct:serial_base
+clean_port	spi.h	/^    int          (*clean_port)(struct spi_base* s);$/;"	m	struct:spi_base
+close	serial_posix.h	/^    int (*close)(struct posix_serial* s);$/;"	m	struct:posix_serial
+close	spi_mt7688.h	/^    int (*close)(struct spi_mt7688* s);$/;"	m	struct:spi_mt7688
+cmd	uixo_console.h	/^	char            cmd;$/;"	m	struct:__anon15
+config_port	serial_posix.h	/^    int (*config_port)(struct posix_serial* s);$/;"	m	struct:posix_serial
+config_port	spi_mt7688.h	/^    int (*config_port)(struct spi_mt7688* s);$/;"	m	struct:spi_mt7688
+container_of	list.h	38;"	d
+creat_socket	main.c	/^int creat_socket(void)$/;"	f
+currenttime	uixo_console.h	/^	int			    currenttime;$/;"	m	struct:__anon15
+data	uixo_console.h	/^	char*           data;$/;"	m	struct:__anon15
+del_msg	HandlePort.c	/^int del_msg(uixo_port_t* p,struct list_head* pos,struct list_head* n,char* msg_name,int socketfd,int flag)$/;"	f
+del_msglist	HandlePort.c	/^int del_msglist(uixo_port_t* p,struct list_head* pos,struct list_head* n)$/;"	f
+del_port	HandlePort.c	/^int del_port(struct list_head* pos,struct list_head* n,char* port_name,struct list_head* list)$/;"	f
+drain	serial_posix.h	/^    int (*drain)(struct posix_serial* s);$/;"	m	struct:posix_serial
+error_handle	uixo_console.c	/^void error_handle(int fd,char* string)$/;"	f
+fd	serial_posix.h	/^    int fd;$/;"	m	struct:posix_serial
+fd	spi_mt7688.h	/^    int fd;$/;"	m	struct:spi_mt7688
+find_support_pos	serial.c	/^static int find_support_pos(const char** support, const char* str)$/;"	f	file:
+flush_input	serial_posix.h	/^    int (*flush_input)(struct posix_serial* s);$/;"	m	struct:posix_serial
+flush_output	serial_posix.h	/^    int (*flush_output)(struct posix_serial* s);$/;"	m	struct:posix_serial
+get_baudrate	serial.h	/^    const char*  (*get_baudrate)(struct serial_base* s);$/;"	m	struct:serial_base
+get_baudrate	spi.h	/^    int          (*get_baudrate)(struct spi_base* s);$/;"	m	struct:spi_base
+get_bytesize	serial.h	/^    const char*  (*get_bytesize)(struct serial_base* s);$/;"	m	struct:serial_base
+get_bytesize	spi.h	/^    int          (*get_bytesize)(struct spi_base* s);$/;"	m	struct:spi_base
+get_parity	serial.h	/^    const char*  (*get_parity)(struct serial_base* s);$/;"	m	struct:serial_base
+get_port	serial.h	/^    const char*  (*get_port)(struct serial_base* s);$/;"	m	struct:serial_base
+get_port	spi.h	/^    const char*  (*get_port)(struct spi_base* s);$/;"	m	struct:spi_base
+get_stopbits	serial.h	/^    const char*  (*get_stopbits)(struct serial_base* s);$/;"	m	struct:serial_base
+get_supported_baudrate	serial.h	/^    const char** (*get_supported_baudrate)(struct serial_base* s);$/;"	m	struct:serial_base
+get_supported_bytesize	serial.h	/^    const char** (*get_supported_bytesize)(struct serial_base* s);$/;"	m	struct:serial_base
+get_supported_parity	serial.h	/^    const char** (*get_supported_parity)(struct serial_base* s);$/;"	m	struct:serial_base
+get_supported_stopbits	serial.h	/^    const char** (*get_supported_stopbits)(struct serial_base* s);$/;"	m	struct:serial_base
+get_timeout	serial.h	/^    float        (*get_timeout)(struct serial_base* s);$/;"	m	struct:serial_base
+get_timeout	spi.h	/^    float        (*get_timeout)(struct spi_base* s);$/;"	m	struct:spi_base
+is_open	serial.h	/^    int          (*is_open)(struct serial_base* s);$/;"	m	struct:serial_base
+is_open	spi.h	/^    int          (*is_open)(struct spi_base* s);$/;"	m	struct:spi_base
+len	uixo_console.h	/^	unsigned char   len;$/;"	m	struct:__anon15
+list	FunTypes.c	/^	struct list_head* list;$/;"	m	struct:__anon13	typeref:struct:__anon13::list_head	file:
+list	uixo_console.h	/^	struct list_head list;$/;"	m	struct:__anon15	typeref:struct:__anon15::list_head
+list	uixo_console.h	/^	struct list_head list;$/;"	m	struct:__anon16	typeref:struct:__anon16::list_head
+list_add	list.h	/^list_add(struct list_head *_new, struct list_head *head)$/;"	f
+list_add_tail	list.h	/^list_add_tail(struct list_head *_new, struct list_head *head)$/;"	f
+list_del	list.h	/^list_del(struct list_head *entry)$/;"	f
+list_del_init	list.h	/^list_del_init(struct list_head *entry)$/;"	f
+list_empty	list.h	/^list_empty(const struct list_head *head)$/;"	f
+list_entry	list.h	112;"	d
+list_first_entry	list.h	113;"	d
+list_for_each	list.h	116;"	d
+list_for_each_entry	list.h	122;"	d
+list_for_each_entry_reverse	list.h	131;"	d
+list_for_each_entry_safe	list.h	126;"	d
+list_for_each_prev	list.h	135;"	d
+list_for_each_prev_safe	list.h	136;"	d
+list_for_each_safe	list.h	119;"	d
+list_head	list.h	/^struct list_head {$/;"	s
+list_is_first	list.h	/^list_is_first(const struct list_head *list,$/;"	f
+list_is_last	list.h	/^list_is_last(const struct list_head *list,$/;"	f
+list_last_entry	list.h	114;"	d
+list_move	list.h	/^list_move(struct list_head *list, struct list_head *head)$/;"	f
+list_move_tail	list.h	/^list_move_tail(struct list_head *entry, struct list_head *head)$/;"	f
+list_splice	list.h	/^list_splice(const struct list_head *list, struct list_head *head)$/;"	f
+list_splice_init	list.h	/^list_splice_init(struct list_head *list, struct list_head *head)$/;"	f
+list_splice_tail	list.h	/^list_splice_tail(struct list_head *list, struct list_head *head)$/;"	f
+list_splice_tail_init	list.h	/^list_splice_tail_init(struct list_head *list, struct list_head *head)$/;"	f
+main	main.c	/^int main (int argc, char* argv[])$/;"	f
+mkport	HandlePort.c	/^int mkport(uixo_port_t* port,char* port_name,char* baudrate,struct list_head* list)$/;"	f
+msghead	uixo_console.h	/^	struct list_head* msghead;$/;"	m	struct:__anon16	typeref:struct:__anon16::list_head
+name	uixo_console.h	/^    char* name;$/;"	m	struct:__anon16
+newtio	serial_posix.h	/^    struct termios newtio;$/;"	m	struct:posix_serial	typeref:struct:posix_serial::termios
+next	list.h	/^	struct list_head *next;$/;"	m	struct:list_head	typeref:struct:list_head::list_head
+oldtio	serial_posix.h	/^    struct termios oldtio;$/;"	m	struct:posix_serial	typeref:struct:posix_serial::termios
+open	serial_posix.h	/^    int (*open)(struct posix_serial* s);$/;"	m	struct:posix_serial
+open	spi_mt7688.h	/^    int (*open)(struct spi_mt7688* s);$/;"	m	struct:spi_mt7688
+open_flag	serial.h	/^    bool             open_flag;$/;"	m	struct:serial_base
+open_flag	spi.h	/^    bool             open_flag;$/;"	m	struct:spi_base
+parity	serial.h	/^    char*            parity;$/;"	m	struct:__anon7
+parity	serial.h	/^    serial_parity_t  parity;$/;"	m	struct:serial_base
+parity	uixo_console.h	/^    char* parity;$/;"	m	struct:__anon16
+port	serial.h	/^    char*            port;$/;"	m	struct:__anon7
+port	serial.h	/^    char*            port;$/;"	m	struct:serial_base
+port	spi.h	/^    char*            port;$/;"	m	struct:__anon12
+port	spi.h	/^    char*            port;$/;"	m	struct:spi_base
+port	uixo_console.h	/^    void* port;$/;"	m	struct:__anon16
+port_baudrate	uixo_console.h	/^	char 			port_baudrate[20];$/;"	m	struct:__anon15
+port_name	FunTypes.c	/^	char* port_name;$/;"	m	struct:__anon13	file:
+port_name	uixo_console.h	/^	char 			port_name[20];$/;"	m	struct:__anon15
+posix_serial	serial_posix.h	/^struct posix_serial {$/;"	s
+posix_serial_close	serial_posix.c	/^static int posix_serial_close(struct posix_serial* s)$/;"	f	file:
+posix_serial_config_port	serial_posix.c	/^static int posix_serial_config_port(struct posix_serial* s)$/;"	f	file:
+posix_serial_drain	serial_posix.c	/^static int posix_serial_drain(struct posix_serial* s)$/;"	f	file:
+posix_serial_err_t	serial_posix.h	/^} posix_serial_err_t;$/;"	t	typeref:enum:__anon8
+posix_serial_flush_input	serial_posix.c	/^static int posix_serial_flush_input(struct posix_serial* s)$/;"	f	file:
+posix_serial_flush_output	serial_posix.c	/^static int posix_serial_flush_output(struct posix_serial* s)$/;"	f	file:
+posix_serial_init_t	serial_posix.h	/^} posix_serial_init_t;$/;"	t	typeref:struct:__anon9
+posix_serial_open	serial_posix.c	/^static int posix_serial_open(struct posix_serial* s)$/;"	f	file:
+posix_serial_port_init	serial_posix.c	/^struct posix_serial* posix_serial_port_init(posix_serial_init_t* psp)$/;"	f
+posix_serial_read	serial_posix.c	/^static int posix_serial_read(struct posix_serial* s, char* dst, int size)$/;"	f	file:
+posix_serial_read_in_wait	serial_posix.c	/^static int posix_serial_read_in_wait(struct posix_serial* s)$/;"	f	file:
+posix_serial_write	serial_posix.c	/^static int posix_serial_write(struct posix_serial* s, const char* src, int size)$/;"	f	file:
+posix_serial_write_in_wait	serial_posix.c	/^static int posix_serial_write_in_wait(struct posix_serial* s)$/;"	f	file:
+prefetch	list.h	35;"	d
+prev	list.h	/^	struct list_head *prev;$/;"	m	struct:list_head	typeref:struct:list_head::list_head
+pth_rx	FunTypes.c	/^}pth_rx;$/;"	t	typeref:struct:__anon13	file:
+put_ch	spi_mt7688.c	/^static inline void put_ch(int fd, unsigned char ch)$/;"	f	file:
+put_len	spi_mt7688.c	/^static inline void put_len(int fd, unsigned char len)$/;"	f	file:
+read	serial_posix.h	/^    int (*read)(struct posix_serial* s, char* dst, int size);$/;"	m	struct:posix_serial
+read	spi_mt7688.h	/^    int (*read)(struct spi_mt7688* s, char* dst, int size);$/;"	m	struct:spi_mt7688
+read_ch	spi_mt7688.c	/^static inline unsigned char read_ch(int fd)$/;"	f	file:
+read_in_wait	serial_posix.h	/^    int (*read_in_wait)(struct posix_serial* s);$/;"	m	struct:posix_serial
+read_len	spi_mt7688.c	/^static inline unsigned char read_len(int fd)$/;"	f	file:
+read_status	spi_mt7688.c	/^static inline unsigned char read_status(int fd)$/;"	f	file:
+resolve_msg	main.c	/^static uixo_err_t resolve_msg(int sc,struct list_head* list)$/;"	f	file:
+rttimes	uixo_console.h	/^	int 			rttimes;$/;"	m	struct:__anon15
+rx_cmd_fd	uixo_console.h	/^    int   rx_cmd_fd;$/;"	m	struct:__anon16
+rx_cmd_off	uixo_console.h	/^    off_t rx_cmd_off;$/;"	m	struct:__anon16
+rx_head	uixo_console.h	/^    char* rx_head;$/;"	m	struct:__anon16
+save_leave	main.c	/^static void save_leave (int signo){$/;"	f	file:
+sb	serial_posix.h	/^    struct serial_base* sb;$/;"	m	struct:posix_serial	typeref:struct:posix_serial::serial_base
+sb	spi_mt7688.h	/^    struct spi_base* sb;$/;"	m	struct:spi_mt7688	typeref:struct:spi_mt7688::spi_base
+sec	serial.h	/^    unsigned int    sec;$/;"	m	struct:__anon5
+sec	spi.h	/^    unsigned int    sec;$/;"	m	struct:__anon11
+serial_base	serial.h	/^struct serial_base {$/;"	s
+serial_baud_t	serial.h	/^} serial_baud_t;$/;"	t	typeref:enum:__anon3
+serial_bits_t	serial.h	/^} serial_bits_t;$/;"	t	typeref:enum:__anon2
+serial_err_t	serial.h	/^} serial_err_t;$/;"	t	typeref:enum:__anon6
+serial_init_t	serial.h	/^} serial_init_t;$/;"	t	typeref:struct:__anon7
+serial_parity_t	serial.h	/^} serial_parity_t;$/;"	t	typeref:enum:__anon1
+serial_stopbit_t	serial.h	/^} serial_stopbit_t;$/;"	t	typeref:enum:__anon4
+serial_timeout_t	serial.h	/^} serial_timeout_t;$/;"	t	typeref:struct:__anon5
+set_baudrate	serial.h	/^    int          (*set_baudrate)(struct serial_base* s, const char* br);$/;"	m	struct:serial_base
+set_baudrate	spi.h	/^    int          (*set_baudrate)(struct spi_base* s, const char* br);$/;"	m	struct:spi_base
+set_bytesize	serial.h	/^    int          (*set_bytesize)(struct serial_base* s, const char* bs);$/;"	m	struct:serial_base
+set_bytesize	spi.h	/^    int          (*set_bytesize)(struct spi_base* s, const char* bs);$/;"	m	struct:spi_base
+set_is_open	serial.h	/^    int          (*set_is_open)(struct serial_base* s);$/;"	m	struct:serial_base
+set_is_open	spi.h	/^    int          (*set_is_open)(struct spi_base* s);$/;"	m	struct:spi_base
+set_parity	serial.h	/^    int          (*set_parity)(struct serial_base* s, const char* pa);$/;"	m	struct:serial_base
+set_port	serial.h	/^    int          (*set_port)(struct serial_base* s, const char* name);$/;"	m	struct:serial_base
+set_port	spi.h	/^    int          (*set_port)(struct spi_base* s, const char* name);$/;"	m	struct:spi_base
+set_stopbits	serial.h	/^    int          (*set_stopbits)(struct serial_base* s, const char* sb);$/;"	m	struct:serial_base
+set_timeout	serial.h	/^    int          (*set_timeout)(struct serial_base* s, const char* time);$/;"	m	struct:serial_base
+set_timeout	spi.h	/^    int          (*set_timeout)(struct spi_base* s, const char* time);$/;"	m	struct:spi_base
+socketfd	main.c	/^int socketfd;$/;"	v
+socketfd	uixo_console.h	/^	int 			socketfd;$/;"	m	struct:__anon15
+sp	serial_posix.h	/^    serial_init_t sp;$/;"	m	struct:__anon9
+sp	spi_mt7688.h	/^    spi_init_t sp;$/;"	m	struct:__anon18
+spi_base	spi.h	/^struct spi_base {$/;"	s
+spi_err_t	spi.h	/^} spi_err_t;$/;"	t	typeref:enum:__anon10
+spi_init_t	spi.h	/^} spi_init_t;$/;"	t	typeref:struct:__anon12
+spi_mt7688	spi_mt7688.h	/^struct spi_mt7688 {$/;"	s
+spi_mt7688_close	spi_mt7688.c	/^static int spi_mt7688_close(struct spi_mt7688* s)$/;"	f	file:
+spi_mt7688_config_port	spi_mt7688.c	/^static int spi_mt7688_config_port(struct spi_mt7688* s)$/;"	f	file:
+spi_mt7688_err_t	spi_mt7688.h	/^} spi_mt7688_err_t;$/;"	t	typeref:enum:__anon17
+spi_mt7688_init_t	spi_mt7688.h	/^} spi_mt7688_init_t;$/;"	t	typeref:struct:__anon18
+spi_mt7688_open	spi_mt7688.c	/^static int spi_mt7688_open(struct spi_mt7688* s)$/;"	f	file:
+spi_mt7688_port_init	spi_mt7688.c	/^struct spi_mt7688* spi_mt7688_port_init(spi_mt7688_init_t* psp)$/;"	f
+spi_mt7688_read	spi_mt7688.c	/^static int spi_mt7688_read(struct spi_mt7688* s, char* dst, int size)$/;"	f	file:
+spi_mt7688_write	spi_mt7688.c	/^static int spi_mt7688_write(struct spi_mt7688* s, const char* src, int size)$/;"	f	file:
+spi_timeout_t	spi.h	/^} spi_timeout_t;$/;"	t	typeref:struct:__anon11
+stopbits	serial.h	/^    char*            stopbits;$/;"	m	struct:__anon7
+stopbits	serial.h	/^    serial_stopbit_t stopbits;$/;"	m	struct:serial_base
+stopbits	uixo_console.h	/^    char* stopbits;$/;"	m	struct:__anon16
+support_baudrate	serial.c	/^static const char* support_baudrate[] = {$/;"	v	file:
+support_bytesize	serial.c	/^static const char* support_bytesize[] = {$/;"	v	file:
+support_parity	serial.c	/^static const char* support_parity[] = {$/;"	v	file:
+support_stopbits	serial.c	/^static const char* support_stopbits[] = {$/;"	v	file:
+time	uixo_console.h	/^	unsigned long   time;$/;"	m	struct:__anon15
+timeout	serial.h	/^    char*            timeout;$/;"	m	struct:__anon7
+timeout	serial.h	/^    serial_timeout_t timeout;$/;"	m	struct:serial_base
+timeout	spi.h	/^    char*            timeout;$/;"	m	struct:__anon12
+timeout	spi.h	/^    spi_timeout_t timeout;$/;"	m	struct:spi_base
+timeout	uixo_console.h	/^	int 			timeout;$/;"	m	struct:__anon15
+timeout	uixo_console.h	/^    char* timeout;$/;"	m	struct:__anon16
+tx_cmd_fd	uixo_console.h	/^    int   tx_cmd_fd;$/;"	m	struct:__anon16
+tx_cmd_off	uixo_console.h	/^    off_t tx_cmd_off;$/;"	m	struct:__anon16
+tx_head	uixo_console.h	/^    char* tx_head;$/;"	m	struct:__anon16
+uixo_cmd_status	HandleMsg.c	/^enum uixo_cmd_status {$/;"	g	file:
+uixo_default_set	HandlePort.c	/^void uixo_default_set(uixo_port_t* port,char* port_name,char* baudrate)$/;"	f
+uixo_err_t	uixo_console.h	/^} uixo_err_t;$/;"	t	typeref:enum:__anon14
+uixo_invalid_receive_data_process	HandleMsg.c	/^int uixo_invalid_receive_data_process(void* port, char* str, int size)$/;"	f
+uixo_load_cmd	uixo_console.c	/^static int uixo_load_cmd(const int fd,struct list_head* list)$/;"	f	file:
+uixo_message_list_t	uixo_console.h	/^}uixo_message_list_t;$/;"	t	typeref:struct:__anon15
+uixo_parse_string	ParseString.c	/^int uixo_parse_string(char* cmd_data_buf,uixo_message_list_t* onemsg,int readn,char* fn_name)$/;"	f
+uixo_port_close	main.c	/^int uixo_port_close(struct list_head list){$/;"	f
+uixo_port_open	HandlePort.c	/^uixo_err_t uixo_port_open(uixo_port_t* port)$/;"	f
+uixo_port_t	uixo_console.h	/^} uixo_port_t;$/;"	t	typeref:struct:__anon16
+uixo_receive_data	HandleMsg.c	/^int uixo_receive_data(uixo_port_t* p, uixo_message_list_t** msgp)$/;"	f
+uixo_resolve_msg	uixo_console.c	/^int uixo_resolve_msg(int sfd,struct list_head* list)$/;"	f
+uixo_rx_handler	uixo_console.c	/^int uixo_rx_handler(uixo_port_t* p,char* Callback)$/;"	f
+uixo_rx_status	HandleMsg.c	/^enum uixo_rx_status {$/;"	g	file:
+uixo_save_cmd	HandleMsg.c	/^int uixo_save_cmd(uixo_port_t* p,const uixo_message_list_t* msg,char* Callback)$/;"	f
+uixo_shell	uixo_console.c	/^int uixo_shell(char * data){$/;"	f
+uixo_transmit_data	HandleMsg.c	/^int uixo_transmit_data(uixo_port_t* p, const uixo_message_list_t* msg)$/;"	f
+usage	main.c	/^static int usage(const char* name)$/;"	f	file:
+usec	serial.h	/^    unsigned int    usec;$/;"	m	struct:__anon5
+usec	spi.h	/^    unsigned int    usec;$/;"	m	struct:__anon11
+write	serial_posix.h	/^    int (*write)(struct posix_serial* s, const char* src, int size);$/;"	m	struct:posix_serial
+write	spi_mt7688.h	/^    int (*write)(struct spi_mt7688* s, const char* src, int size);$/;"	m	struct:spi_mt7688
+write_in_wait	serial_posix.h	/^    int (*write_in_wait)(struct posix_serial* s);$/;"	m	struct:posix_serial

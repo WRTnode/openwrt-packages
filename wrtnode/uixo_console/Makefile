@@ -19,8 +19,8 @@ include $(INCLUDE_DIR)/package.mk
 define Package/uixo_console
   SECTION:=uixo_console
   CATEGORY:=WRTnode
-  TITLE:=UIxO console 
-  DEPENDS =+libpthread 
+  TITLE:=UIxO console
+  DEPENDS:=+libpthread
 endef
 define Package/uixo_console/description
   UIxO console
@@ -29,8 +29,10 @@ endef
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	$(CP) ./src/* $(PKG_BUILD_DIR)/
+	$(CP) ./bin/* $(PKG_BUILD_DIR)/
+	$(CP) ./etc/uixo/* $(PKG_BUILD_DIR)/
 endef
-     
+
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS)
@@ -40,6 +42,8 @@ define Package/uixo_console/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/uixo_console $(1)/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/uixo_console_do.sh $(1)/bin/
+	$(INSTALL_DIR) $(1)/etc/uixo
+	$(INSTALL_CONF) $(PKG_BUILD_DIR)/uixo_console.conf $(1)/etc/uixo/
 endef
 
 $(eval $(call BuildPackage,uixo_console))

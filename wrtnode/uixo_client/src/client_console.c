@@ -25,7 +25,7 @@ void* work(void* arg1){
 	for(;;){
 		size = read(cs,buff,sizeof(buff));
 		if(size > 0){
-			rttimes--;	
+			rttimes--;
 		}
 		if(size == 0){
 			break;
@@ -72,7 +72,7 @@ int main(int argc,char *argv[])
 	ret = connect(cs,(struct sockaddr*)&serveraddr,sizeof(struct sockaddr));
 	printf("ret = %d\n",ret);
 	if(ret < 0){
-		printf("connect error\n");	
+		printf("connect error\n");
 	}
 	printf("Ple input a similar [1234:2:m:22:3:115200:/dev/ttyS0:mkport],input 'quit' to exit\n");
 	rttimes = atoi(argv[3]);
@@ -81,13 +81,14 @@ int main(int argc,char *argv[])
 	arg.times = rttimes;
 	ret = pthread_create(&tpid, NULL,work,&arg) ;
 	if(ret != 0){
-		printf("pthread_create fail\n");	
+		printf("pthread_create fail\n");
 		return -1;
 	}
 	strcpy(cstring,argv[2]);
 	string_len = strlen(cstring);
 	//加换行符，否则导致阻塞
-	cstring[string_len] = '\n'; 
+	cstring[string_len] = '\n';
+    cstring[string_len+1] = '\0';
 
 	if(strncmp(cstring,"quit",4)==0){
 		printf("quit client\n");
@@ -99,15 +100,15 @@ int main(int argc,char *argv[])
 
 	ret = send(cs,cstring,strlen(cstring),0);
 	if(ret < 0){
-		printf("send error\n");	
+		printf("send error\n");
 	}
 	if(rttimes == 0){
 		close(cs);
 		return 0;
 	}
 
-	pthread_join(tpid, NULL); 
+	pthread_join(tpid, NULL);
 	printf("Received all the data\n");
 	close(cs);
 	return 0;
-}			
+}

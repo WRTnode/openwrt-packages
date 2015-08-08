@@ -109,6 +109,7 @@ uixo_err_t uixo_port_open(uixo_port_t* port)
             return -UIXO_ERR_SERIAL_OPEN_ERR;
         }
         port->port = sm;
+        printf("open %s OK, fd = %d\n", sm->sb->port, sm->fd);
     }
 	return ret;
 }
