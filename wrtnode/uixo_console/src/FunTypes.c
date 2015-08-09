@@ -177,5 +177,4 @@ int FunTypes(struct list_head* list,uixo_message_list_t* onemsg,char* fn_name){
 			}
 		}
 	}
-
 }

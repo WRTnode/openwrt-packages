@@ -81,12 +81,9 @@ static int uixo_load_cmd(const int fd,struct list_head* list)
 			   cmd is like [time:len:cmd:data:rttimes:baudrate:/dev/device_name:fnname]
 			 */
 			uixo_parse_string(cmd_data_buf,onemsg,readsize,fn_name);
-
 			onemsg->socketfd = fd;
-
 			/* Function types ,contain of mkport,rmport,hlport*/
 			FunTypes(list,onemsg,fn_name);
-
 		}
 		free(mod_data_buf);
 	}
