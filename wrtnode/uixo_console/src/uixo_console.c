@@ -22,18 +22,16 @@ Data        :2014.11.06
 
 static LIST_HEAD(uixo_msgs_head);
 
-/* the error returned to the client */
-void error_handle(int fd,char* string)
+static char* uixo_console_strtok(char* src, const char* delim)
 {
-	char retstr[40];
-	memset(retstr,0,40);
-	strcpy(retstr,string);
-	write(fd,retstr,strlen(retstr));
-	memset(retstr,0,40);
-}
+    static char *lasts;
 
-static char* __find_string_between_two_char(const char* src, const char start, const char end)
-{
+    if((NULL != lasts) && (*delim == *lasts)) {
+        *lasts = '\0';
+        lasts++;
+        return NULL;
+    }
+    return strtok_r(src, delim, &lasts);
 }
 
 static int _find_string_between_two_char(const char* src, const char start, const char end, char* dest)
@@ -42,11 +40,11 @@ static int _find_string_between_two_char(const char* src, const char start, cons
     char* tmp = NULL;
     int len = 0;
 
-    if((NULL == data) || (NULL == dest)) {
+    if((NULL == src) || (NULL == dest)) {
         printf("%s: input data or dest buffer is NULL\n", __func__);
         return -1;
     }
-    if(strlen(data) > MAX_BUFFER_LEN) {
+    if(strlen(src) > MAX_BUFFER_LEN) {
         printf("%s: input data is too long, MAX is %d\n", __func__, MAX_BUFFER_LEN);
         return -1;
     }
@@ -56,8 +54,7 @@ static int _find_string_between_two_char(const char* src, const char start, cons
         printf("%s: no %c in %s\n", __func__, start, src);
         return -1;
     }
-    len++;
-    tmp = sptr++;
+
     while((*tmp != end) && (*tmp != '\0')) {
         len++;
         tmp++;
@@ -67,30 +64,25 @@ static int _find_string_between_two_char(const char* src, const char start, cons
         return -1;
     }
     else {
-        len++;
-        strncpy(dest, sptr, len);
-        dest[len] = '\0';
-        return len;
+        if(0 != len) {
+            strncpy(dest, sptr, len);
+            dest[len] = '\0';
+            return len;
+        }
+        else {
+            return -1;
+        }
     }
 }
 
-static inline int _find_string_between_two_char_no_begin(const char* src, const char start, const char end, char* dest)
-{
-    int len = 0;
-    len = _find_string_between_two_char(src, start, end, dest);
-    if(len < 0) {
-        return -1;
-    }
-    else 
-}
-
-
-static int uixo_console_load_cmd(const char* data, const ssize_t len, struct uixo_message_t* msg)
+static int uixo_console_load_cmd(const char* data, const ssize_t len, uixo_message_t* msg)
 {
 	int ret = 0;
-    char* ptr = NULL;
     char* valid_data = NULL;
     char* tmp_data = NULL;
+    int i = 0;
+    char* data_ptr = NULL;
+    char* ptr = NULL;
 
     if((0 == len) || (NULL == data)) {
         return -UIXO_CONSOLE_ERR_INPUT_NULL;
@@ -99,115 +91,79 @@ static int uixo_console_load_cmd(const char* data, const ssize_t len, struct uix
     valid_data = (char*)calloc(MAX_BUFFER_LEN, sizeof(*valid_data));
     tmp_data = (char*)calloc(MAX_BUFFER_LEN, sizeof(*tmp_data));
     if((NULL == valid_data) || (NULL == tmp_data)) {
-        printf("%s: calloc error\n");
+        printf("%s: calloc error\n", __func__);
         return -UIXO_ERR_NULL;
     }
 
-
-
-
-typedef struct {
-	struct list_head list;
-	unsigned long   time;
-	unsigned char   len;
-	int 			timeout;
-	int 			socketfd;
-	int 			rttimes;
-	int			    currenttime;
-	char            cmd;
-	char*           data;
-	char* 			port_name;
-	int 			port_baudrate;
-} uixo_message_t;
-
-	/* onemsg : [time:len:cmd:data:rttimes:baudrate:/dev/device_name] */
+	/* onemsg : [time:len:cmd:data:rttimes:baudrate:/dev/device_name:fnname] */
 	ret = _find_string_between_two_char(data, '[', ']', valid_data);
     if(ret < 0) {
         goto LOAD_CMD_DATA_FORMAT_ERROR;
     }
-    ptr = valid_data;
     PR_DEBUG("%s: got valid data = %s, len = %d.\n", __func__, valid_data, ret);
 
-    ret = _find_string_between_two_char(ptr, '[', ':', tmp_data);
-    if(ret < 0) {
-        goto LOAD_CMD_DATA_FORMAT_ERROR;
-    }
-    msg->time = (ret <= 2)? 0: atoi(tmp_data);
-    PR_DEBUG("%s: got time = %d.\n", __func__, msg->time);
-    ptr += ret-1;
-
-    ret = _find_string_between_two_char(ptr, ':', ':', tmp_data);
-    if(ret < 0) {
-        goto LOAD_CMD_DATA_FORMAT_ERROR;
-    }
-    msg->len = (ret <= 2)? 0: atoi(tmp_data);
-    PR_DEBUG("%s: got len = %d.\n", __func__, msg->len);
-    ptr += ret-1;
-
-    ret = _find_string_between_two_char(ptr, ':', ':', tmp_data);
-    if(ret < 0) {
-        goto LOAD_CMD_DATA_FORMAT_ERROR;
-    }
-    msg->cmd = (ret <= 2)? '\0': tmp_data[1];
-    PR_DEBUG("%s: got cmd = %c.\n", __func__, msg->cmd);
-    ptr += ret-1;
-
-    ret = _find_string_between_two_char(ptr, ':', ':', tmp_data);
-    if(ret < 0) {
-        goto LOAD_CMD_DATA_FORMAT_ERROR;
-    }
-    if(ret <= 2) {
-        msg->data = NULL;
-    }
-    else {
-        char* data_tmp = NULL;
-        if(ret != msg->len) {
-            printf("%s: Warning, received data length(%d) and need data length(%d) not match.\n",
-                   __func__, ret, msg->len);
+    memcpy(tmp_data, valid_data, ret*sizeof(*tmp_data));
+    data_ptr = tmp_data;
+    i = 0;
+    while(i++ < 8) {
+        ptr = uixo_console_strtok(data_ptr, ":");
+        PR_DEBUG("%s: parse string = %s.\n", __func__, ptr);
+        switch(i) {
+        case 0: msg->time = (ptr != NULL)? atoi(ptr): 0; break;
+        case 1: msg->len = (ptr != NULL)? atoi(ptr): 0; break;
+        case 2: msg->cmd = (ptr != NULL)? *ptr: '\0'; break;
+        case 3: if((msg->len != 0) && (ptr != NULL)) {
+                    msg->data = (char*)calloc(msg->len, sizeof(char));
+                    if(msg->data == NULL) {
+                        printf("%s: message calloc error.\n", __func__);
+                        return -UIXO_ERR_NULL;
+                    }
+                    memcpy(msg->data, ptr, msg->len);
+                }
+                else {
+                    msg->data = NULL;
+                }
+                break;
+        case 4: msg->rttimes = (ptr != NULL)? atoi(ptr): 0; break;
+        case 5: msg->port_baudrate = (ptr != NULL)? atoi(ptr): 0; break;
+        case 6: if(ptr != NULL) {
+                    int port_len = strlen(ptr);
+                    msg->port_name = (char*)calloc(port_len+1, sizeof(char));
+                    if(msg->port_name == NULL) {
+                        printf("%s: message calloc error.\n", __func__);
+                        return -UIXO_ERR_NULL;
+                    }
+                    memcpy(msg->port_name, ptr, port_len);
+                }
+                else {
+                    msg->port_name = NULL;
+                }
+                break;
+        case 7: if(ptr != NULL) {
+                    int port_len = strlen(ptr);
+                    msg->fn_name = (char*)calloc(port_len+1, sizeof(char));
+                    if(msg->fn_name == NULL) {
+                        printf("%s: message calloc error.\n", __func__);
+                        return -UIXO_ERR_NULL;
+                    }
+                    memcpy(msg->fn_name, ptr, port_len);
+                }
+                else {
+                    printf("%s: Warning, fn name should not be empty.\n", __func__);
+                    msg->fn_name = NULL;
+                }
+        default: printf("%s: too many parameters.\n", __func__);
+                 break;
         }
-        data_tmp = (char*)malloc((ret))
-        memcpy()
+        data_ptr = NULL;
     }
-    PR_DEBUG("%s: got cmd = %c.\n", __func__, msg->cmd);
-    ptr += ret-1;
-
-
-    /* \n for the end of a command to split the received data */
-		while(cmd_len<readsize){
-			one_cmd_len=cmd_len;
-			for(;cmd_len<4096;cmd_len++){
-				if(*(mod_data_buf+cmd_len)=='\n'){
-					memcpy(cmd_data_buf,mod_data_buf+one_cmd_len,cmd_len-one_cmd_len);
-					break;
-				}
-			}
-			cmd_data_buf[cmd_len-one_cmd_len]='\0';
-			cmd_len++;
-			if(cmd_len>4096){
-				break;
-			}
-			/* 1.malloc a message */
-			onemsg = (uixo_message_list_t*)calloc(1, sizeof(uixo_message_list_t));
-			/* translate cmd to msg
-			   cmd is like [time:len:cmd:data:rttimes:baudrate:/dev/device_name:fnname]
-			 */
-			uixo_parse_string(cmd_data_buf,onemsg,readsize,fn_name);
-			onemsg->socketfd = fd;
-			/* Function types ,contain of mkport,rmport,hlport*/
-			FunTypes(list,onemsg,fn_name);
-		}
-		free(mod_data_buf);
-	}
-
-
-
 
     free(valid_data);
     free(tmp_data);
     return 0;
 
 LOAD_CMD_DATA_FORMAT_ERROR:
-    printf("%s: message format error. message = %s.\n"__func__, data);
+    printf("%s: message format error. message = %s.\n", __func__, data);
     return -UIXO_CONSOLE_ERR_INPUT_NULL;
 }
 
@@ -221,7 +177,7 @@ int uixo_rx_handler(uixo_port_t* p,char* Callback)
 		return -UIXO_CONSOLE_ERR_INPUT_NULL;
 	}
 	/* receive data from port */
-	static uixo_message_list_t* msg = NULL;
+	uixo_message_t* msg = NULL;
 	if(uixo_receive_data(p, &msg) < 0) {
 
 		ret = UIXO_CONSOLE_ERR_PROC_MSG;
@@ -272,7 +228,7 @@ int uixo_shell(char * data){
 }
 
 /* handle the data from client */
-int uixo_console_parse_msg(const char* data, const ssize_t len, struct uixo_message_t* msg)
+int uixo_console_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg)
 {
 	if(uixo_console_load_cmd(data, len, msg) < 0) {
 		return -UIXO_CONSOLE_ERR_LOAD_CMD;

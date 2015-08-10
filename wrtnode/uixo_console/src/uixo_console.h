@@ -61,6 +61,7 @@ typedef struct {
 	char*           data;
 	char* 			port_name;
 	int 			port_baudrate;
+    char*           fn_name;
 } uixo_message_t;
 
 typedef struct {
@@ -99,17 +100,16 @@ typedef enum {
 */
 int uixo_rx_handler(uixo_port_t* p,char* Callback);
 int del_msg(uixo_port_t* p,struct list_head* pos,struct list_head* n,char* msg_name,int socketfd,int flag);
-int uixo_parse_string(char* cmdline,uixo_message_t* onemsg,int readnum,char* fn_name);
 int FunTypes(struct list_head* list,uixo_message_t* onemsg,char* fn_name);
 int mkport(uixo_port_t* port,char* port_name,char* baudrate,struct list_head* list);
 uixo_err_t uixo_port_open(uixo_port_t* port);
 int del_port(struct list_head* pos,struct list_head* n,char* port_name,struct list_head* list);
 int del_msglist(uixo_port_t* p,struct list_head* pos,struct list_head* n);
-void error_handle(int fd,char* string);
 int uixo_transmit_data(uixo_port_t* p, const uixo_message_t* msg);
 int uixo_receive_data(uixo_port_t* p, uixo_message_t** msg);
 int uixo_receive_data_process(const char ch, uixo_message_t** msg,enum uixo_rx_status* status, char* head);
 int uixo_save_cmd(uixo_port_t* p, const uixo_message_t* msg,char* Callback);
 int uixo_invalid_receive_data_process(void* port, char* str, int size);
+int uixo_console_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg)
 
 #endif

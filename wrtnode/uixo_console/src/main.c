@@ -41,6 +41,7 @@ Data        :2014.12.22
    static variables
  */
 static LIST_HEAD(uixo_ports_head);
+static LIST_HEAD(message_head);
 static int socketfd;
 
 /*
@@ -51,7 +52,7 @@ static int usage(const char* name)
     return -1;
 }
 
-static int uixo_console_resolve_msg(const int sc, struct uixo_message_t* msg)
+static int uixo_console_resolve_msg(const int sc, uixo_message_t* msg)
 {
     char* read_buf = NULL;
     ssize_t readn = 0;
@@ -66,13 +67,14 @@ static int uixo_console_resolve_msg(const int sc, struct uixo_message_t* msg)
         return -UIXO_ERR_NULL;
     }
 
+    msg->socketfd = sc;
     readn = read(sc, read_buf, MSG_BUFF_LEN);
     if((readn == 0)||(readn == -1)) {
         printf("%s: read client fd error. return = %ld", __func__, readn);
 		return -UIXO_ERR;
 	}
 
-    PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, mod_data_buf, readn);
+    PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
 
     if(uixo_console_parse_msg(read_buf, readn, msg) != UIXO_ERR_OK) {
         printf("%s: uixo message parse err.\n", __func__);
@@ -152,7 +154,6 @@ static int uixo_console_creat_socket(void)
 int main(int argc, char* argv[])
 {
     int ret = 0;
-    uixo_message_list_t* listmsg = NULL;
 
     socketfd = uixo_console_creat_socket();
 
@@ -195,11 +196,15 @@ int main(int argc, char* argv[])
             PR_DEBUG("%s: Have clinet send data in.\n", __func__);
             for(i=0; i<connct_num ;i++) {
                 if(FD_ISSET(fd_a[i], &sreadfds)) {
-                    struct uixo_message_t msg;
+                    uixo_message_t* msg = NULL;
 
                     PR_DEBUG("%s: clinet(fd = %d) send data in.\n", __func__, fd_a[i]);
-                    memset(&msg, 0, sizeof(msg));
-                    ret = uixo_console_resolve_msg(fd_a[i], &msg);
+                    msg = (uixo_message_t*)calloc(1, sizeof(*msg));
+                    if(NULL == msg) {
+                        printf("%s: calloc message error.\n", __func__);
+                        return -UIXO_ERR_NULL;
+                    }
+                    ret = uixo_console_resolve_msg(fd_a[i], msg);
 
 
 

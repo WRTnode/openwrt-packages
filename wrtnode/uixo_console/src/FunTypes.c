@@ -23,6 +23,18 @@ typedef struct{
 	char Callback[20];
 }pth_rx;
 
+
+/* the error returned to the client */
+static void error_handle(int fd,char* string)
+{
+	char retstr[40];
+	memset(retstr,0,40);
+	strcpy(retstr,string);
+	write(fd,retstr,strlen(retstr));
+	memset(retstr,0,40);
+}
+
+
 void* ReadPort(void* arg)
 {
 	struct list_head* list;
