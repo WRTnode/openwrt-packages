@@ -29,7 +29,6 @@
 #define PR_DEBUG(fmt,args...) /*do nothing */
 #endif
 
-
 typedef enum {
 	UIXO_ERR_OK = 0,
     UIXO_CONSOLE_ERR_INPUT_NULL = 1,
@@ -46,9 +45,11 @@ typedef enum {
 	UIXO_ERR_FIFO,
 	UIXO_ERR_SERIAL_INIT_ERR,
 	UIXO_ERR_SERIAL_OPEN_ERR,
-	UIXO_ERR_SELECT = UIXO_CONSOLE_ERR_INPUT_NULL,
+	UIXO_ERR_SELECT,
+    UIXO_ERR,
 } uixo_err_t;
-typedef struct{
+
+typedef struct {
 	struct list_head list;
 	unsigned long   time;
 	unsigned char   len;
@@ -58,10 +59,11 @@ typedef struct{
 	int			    currenttime;
 	char            cmd;
 	char*           data;
-	char 			port_name[20];
-	char 			port_baudrate[20];
-}uixo_message_list_t;
-typedef struct{
+	char* 			port_name;
+	int 			port_baudrate;
+} uixo_message_t;
+
+typedef struct {
 	struct list_head list;
 	struct list_head* msghead;
     /* uixo message head */
@@ -82,7 +84,6 @@ typedef struct{
     off_t tx_cmd_off;
 } uixo_port_t;
 enum uixo_rx_status;
-enum uixo_cmd_status;
 #if 0
 typedef enum {
 	UIXO_RX_STATUS_IDLE = 0,
@@ -90,12 +91,6 @@ typedef enum {
 	UIXO_RX_STATUS_GOT_HEAD,
 	UIXO_RX_STATUS_GOT_MSG
 }uixo_rx_status;
-typedef enum {
-	UIXO_CMD_STATUS_IDLE = 0,
-	UIXO_CMD_STATUS_GOT_LEN,
-	UIXO_CMD_STATUS_GOT_CMD
-}uixo_cmd_status;
-
 #endif
 
 
@@ -103,19 +98,18 @@ typedef enum {
     global functions
 */
 int uixo_rx_handler(uixo_port_t* p,char* Callback);
-int uixo_resolve_msg(int sockclinet,struct list_head* list);
 int del_msg(uixo_port_t* p,struct list_head* pos,struct list_head* n,char* msg_name,int socketfd,int flag);
-int uixo_parse_string(char* cmdline,uixo_message_list_t* onemsg,int readnum,char* fn_name);
-int FunTypes(struct list_head* list,uixo_message_list_t* onemsg,char* fn_name);
+int uixo_parse_string(char* cmdline,uixo_message_t* onemsg,int readnum,char* fn_name);
+int FunTypes(struct list_head* list,uixo_message_t* onemsg,char* fn_name);
 int mkport(uixo_port_t* port,char* port_name,char* baudrate,struct list_head* list);
 uixo_err_t uixo_port_open(uixo_port_t* port);
 int del_port(struct list_head* pos,struct list_head* n,char* port_name,struct list_head* list);
 int del_msglist(uixo_port_t* p,struct list_head* pos,struct list_head* n);
 void error_handle(int fd,char* string);
-int uixo_transmit_data(uixo_port_t* p, const uixo_message_list_t* msg);
-int uixo_receive_data(uixo_port_t* p, uixo_message_list_t** msg);
-int uixo_receive_data_process(const char ch, uixo_message_list_t** msg,enum uixo_rx_status* status, char* head);
-int uixo_save_cmd(uixo_port_t* p, const uixo_message_list_t* msg,char* Callback);
+int uixo_transmit_data(uixo_port_t* p, const uixo_message_t* msg);
+int uixo_receive_data(uixo_port_t* p, uixo_message_t** msg);
+int uixo_receive_data_process(const char ch, uixo_message_t** msg,enum uixo_rx_status* status, char* head);
+int uixo_save_cmd(uixo_port_t* p, const uixo_message_t* msg,char* Callback);
 int uixo_invalid_receive_data_process(void* port, char* str, int size);
 
 #endif

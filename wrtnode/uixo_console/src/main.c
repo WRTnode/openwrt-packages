@@ -35,6 +35,7 @@ Data        :2014.12.22
 #define BACKLOG 100
 #define DELCLOSEFD 0
 #define PORT 8000
+#define MSG_BUFF_LEN     (4096)
 
 /*
    static variables
@@ -50,20 +51,37 @@ static int usage(const char* name)
     return -1;
 }
 
-static uixo_err_t uixo_console_resolve_msg(int sc,struct list_head* list)
+static int uixo_console_resolve_msg(const int sc, struct uixo_message_t* msg)
 {
+    char* read_buf = NULL;
+    ssize_t readn = 0;
     uixo_err_t ret = UIXO_ERR_OK;
-    if(NULL==list) {
+    if(NULL == msg) {
         return -UIXO_ERR_NULL;
     }
-    if((ret=uixo_resolve_msg(sc,list)) != UIXO_ERR_OK) {
-        printf("uixo tx handler err\n");
+
+    read_buf = (char*)calloc(MSG_BUFF_LEN, sizeof(*read_buf));
+    if(NULL == read_buf) {
+        printf("%s: calloc read buffer error.\n", __func__);
+        return -UIXO_ERR_NULL;
+    }
+
+    readn = read(sc, read_buf, MSG_BUFF_LEN);
+    if((readn == 0)||(readn == -1)) {
+        printf("%s: read client fd error. return = %ld", __func__, readn);
+		return -UIXO_ERR;
+	}
+
+    PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, mod_data_buf, readn);
+
+    if(uixo_console_parse_msg(read_buf, readn, msg) != UIXO_ERR_OK) {
+        printf("%s: uixo message parse err.\n", __func__);
         return -LOOP_UIXO_TX_HANDLER_ERROR;
     }
-    return ret;
+    return UIXO_ERR_OK;
 }
 
-static uixo_err_t uixo_console_read_port(struct list_head* list)
+static int uixo_console_read_port(struct list_head* list)
 {
     uixo_err_t ret = UIXO_ERR_OK;
     uixo_port_t* port = NULL;
@@ -131,7 +149,6 @@ static int uixo_console_creat_socket(void)
 /*
    global functions
  */
-
 int main(int argc, char* argv[])
 {
     int ret = 0;
@@ -178,8 +195,16 @@ int main(int argc, char* argv[])
             PR_DEBUG("%s: Have clinet send data in.\n", __func__);
             for(i=0; i<connct_num ;i++) {
                 if(FD_ISSET(fd_a[i], &sreadfds)) {
+                    struct uixo_message_t msg;
+
                     PR_DEBUG("%s: clinet(fd = %d) send data in.\n", __func__, fd_a[i]);
-                    ret = uixo_console_resolve_msg(fd_a[i], &uixo_ports_head);
+                    memset(&msg, 0, sizeof(msg));
+                    ret = uixo_console_resolve_msg(fd_a[i], &msg);
+
+
+
+
+
                     if(ret < 0) {
                         uixo_port_t* p = NULL;
                         struct list_head* pos = 0;
