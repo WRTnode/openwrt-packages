@@ -18,22 +18,6 @@ Data        :2014.11.06
 #include "serial_posix.h"
 #include "uixo_console.h"
 
-#define MAX_BUFFER_LEN    (4096)
-
-static LIST_HEAD(uixo_msgs_head);
-
-static char* uixo_console_strtok(char* src, const char* delim)
-{
-    static char *lasts;
-
-    if((NULL != lasts) && (*delim == *lasts)) {
-        *lasts = '\0';
-        lasts++;
-        return NULL;
-    }
-    return strtok_r(src, delim, &lasts);
-}
-
 static int _find_string_between_two_char(const char* src, const char start, const char end, char* dest)
 {
     char* sptr = NULL;
@@ -79,18 +63,14 @@ static int uixo_console_load_cmd(const char* data, const ssize_t len, uixo_messa
 {
 	int ret = 0;
     char* valid_data = NULL;
-    char* tmp_data = NULL;
-    int i = 0;
-    char* data_ptr = NULL;
     char* ptr = NULL;
 
     if((0 == len) || (NULL == data)) {
         return -UIXO_CONSOLE_ERR_INPUT_NULL;
     }
 
-    valid_data = (char*)calloc(MAX_BUFFER_LEN, sizeof(*valid_data));
-    tmp_data = (char*)calloc(MAX_BUFFER_LEN, sizeof(*tmp_data));
-    if((NULL == valid_data) || (NULL == tmp_data)) {
+    valid_data = (char*)calloc(MAX_UIXO_MSG_LEN, sizeof(*valid_data));
+    if(NULL == valid_data) {
         printf("%s: calloc error\n", __func__);
         return -UIXO_ERR_NULL;
     }
@@ -102,64 +82,24 @@ static int uixo_console_load_cmd(const char* data, const ssize_t len, uixo_messa
     }
     PR_DEBUG("%s: got valid data = %s, len = %d.\n", __func__, valid_data, ret);
 
-    memcpy(tmp_data, valid_data, ret*sizeof(*tmp_data));
-    data_ptr = tmp_data;
-    i = 0;
-    while(i++ < 8) {
-        ptr = uixo_console_strtok(data_ptr, ":");
-        PR_DEBUG("%s: parse string = %s.\n", __func__, ptr);
-        switch(i) {
-        case 0: msg->time = (ptr != NULL)? atoi(ptr): 0; break;
-        case 1: msg->len = (ptr != NULL)? atoi(ptr): 0; break;
-        case 2: msg->cmd = (ptr != NULL)? *ptr: '\0'; break;
-        case 3: if((msg->len != 0) && (ptr != NULL)) {
-                    msg->data = (char*)calloc(msg->len, sizeof(char));
-                    if(msg->data == NULL) {
-                        printf("%s: message calloc error.\n", __func__);
-                        return -UIXO_ERR_NULL;
-                    }
-                    memcpy(msg->data, ptr, msg->len);
-                }
-                else {
-                    msg->data = NULL;
-                }
-                break;
-        case 4: msg->rttimes = (ptr != NULL)? atoi(ptr): 0; break;
-        case 5: msg->port_baudrate = (ptr != NULL)? atoi(ptr): 0; break;
-        case 6: if(ptr != NULL) {
-                    int port_len = strlen(ptr);
-                    msg->port_name = (char*)calloc(port_len+1, sizeof(char));
-                    if(msg->port_name == NULL) {
-                        printf("%s: message calloc error.\n", __func__);
-                        return -UIXO_ERR_NULL;
-                    }
-                    memcpy(msg->port_name, ptr, port_len);
-                }
-                else {
-                    msg->port_name = NULL;
-                }
-                break;
-        case 7: if(ptr != NULL) {
-                    int port_len = strlen(ptr);
-                    msg->fn_name = (char*)calloc(port_len+1, sizeof(char));
-                    if(msg->fn_name == NULL) {
-                        printf("%s: message calloc error.\n", __func__);
-                        return -UIXO_ERR_NULL;
-                    }
-                    memcpy(msg->fn_name, ptr, port_len);
-                }
-                else {
-                    printf("%s: Warning, fn name should not be empty.\n", __func__);
-                    msg->fn_name = NULL;
-                }
-        default: printf("%s: too many parameters.\n", __func__);
-                 break;
-        }
-        data_ptr = NULL;
+    ret = sscanf(valid_data, "%ld:%d:%c:%s:%d:%d:%s:%s",
+                 &msg->time,
+                 &msg->len,
+                 &msg->cmd,
+                 msg->data,
+                 &msg->rttimes,
+                 &msg->port_baudrate,
+                 msg->port_name,
+                 msg->fn_name);
+    if(ret < 8) {
+        goto LOAD_CMD_DATA_FORMAT_ERROR;
     }
+    PR_DEBUG("got a valid message.\n
+             time=%ld,len=%d,cmd=%c,data=%s,rttimes=%d,baudrate=%d,device=%s,fn=%s\n",
+             msg->time, msg->len, msg->cmd, msg->data, msg->rttimes, msg->port_baudrate,
+             msg->port_name, msg->fn_name);
 
     free(valid_data);
-    free(tmp_data);
     return 0;
 
 LOAD_CMD_DATA_FORMAT_ERROR:

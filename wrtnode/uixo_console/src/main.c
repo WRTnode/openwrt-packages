@@ -35,7 +35,6 @@ Data        :2014.12.22
 #define BACKLOG 100
 #define DELCLOSEFD 0
 #define PORT 8000
-#define MSG_BUFF_LEN     (4096)
 
 /*
    static variables

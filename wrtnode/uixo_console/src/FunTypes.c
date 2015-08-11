@@ -69,41 +69,42 @@ void* ReadPort(void* arg)
 	}
 	PR_DEBUG("after Callback = %s\n",Callback);
 }
-int FunTypes(struct list_head* list,uixo_message_list_t* onemsg,char* fn_name){
+
+int FunTypes(struct list_head* port_head, uixo_message_t* msg){
 	uixo_port_t* p;
-	uixo_port_t* port;
-	struct list_head* pos;
-	struct list_head* n;
 	uixo_message_list_t* msg;
 	int ret = 0;
-	int opt,opt1;
+	int opt1;
 	int flag = 0;
 	pthread_t pid;
 	pth_rx pth_rx;
 	char Callback[20] = {0};
+
 	/*create a port*/
-	if(strcmp(fn_name,"mkport")==0){
-		PR_DEBUG("name=%s,baudrate = %s\n",onemsg->port_name,onemsg->port_baudrate);
-		opt = mkport(port,onemsg->port_name,onemsg->port_baudrate,list);
-		if(opt == -2){
-            error_handle(onemsg->socketfd,"Port already exists");
+	if(strcmp(msg->fn_name, "mkport") == 0) {
+        uixo_port_t* port = NULL;
+        uixo_port_t* tmp_p = NULL;
+
+		PR_DEBUG("%s: mkport, name=%s, baudrate = %d\n", __func__, msg->port_name, msg->port_baudrate);
+        list_for_each_entry(tmp_p, list, list) {
+            if(strcmp(tmp_p->name, msg->port_name) == 0) {
+                error_handle(msg->socketfd, "Port already exists\n");
+                return -1;
+            }
+        }
+		port = handle_port_mkport(msg->port_name, msg->port_baudrate);
+		if(NULL == port) {
+			error_handle(msg->socketfd,"mkport error\n");
+            return -1;
 		}
-		else if(opt == -1){
-			error_handle(onemsg->socketfd,"mkport error");
-		}
-		else{
-			error_handle(onemsg->socketfd,"mkport success");
-		}
-	}
+	    list_add_tail(&port->list, port_head);
+    }
 	/* delete a port */
-	else if(strcmp(fn_name,"rmport")==0){
-		PR_DEBUG("rmport %s\n",onemsg->port_name);
-		opt = del_port(pos,n,onemsg->port_name,list);
-		if(opt == 0){
-			error_handle(onemsg->socketfd,"the port does not exist");
-		}
-		else{
-			error_handle(onemsg->socketfd,"rmport success");
+	else if(strcmp(msg->fn_name, "rmport") == 0){
+		PR_DEBUG("%s: rmport %s\n", __func__, msg->port_name);
+		if(handle_port_delport(msg->port_name, port_head) < 0) {
+			error_handle(msg->socketfd,"the port does not exist");
+            return -1;
 		}
 	}
 	/* handle a port */

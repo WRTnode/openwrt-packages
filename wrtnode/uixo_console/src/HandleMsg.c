@@ -210,3 +210,50 @@ int TraversePort (struct list_head* list)
 		PR_DEBUG("port = %s,portnum = %d\n",port->name,numport);
 	}
 }
+
+
+
+
+/* delete a message */
+int del_msg(uixo_port_t* p,struct list_head* pos,struct list_head* n,char* msg_name,int socketfd,int flag)
+{
+	int opt = 0;
+	uixo_message_list_t* msg_del;
+	list_for_each_safe(pos,n,p->msghead)
+	{
+		msg_del = list_entry(pos,uixo_message_list_t,list);
+		if(flag == 0){
+			if(msg_del->socketfd == socketfd){
+				list_del_init(pos);
+				free(msg_del);
+				opt = 1;
+			}
+		}
+		else{
+			if(strcmp(msg_del->port_name,msg_name) == 0 &&\
+					(msg_del->socketfd == socketfd )){
+				list_del_init(pos);
+				free(msg_del);
+				opt = 1;
+				break;
+			}
+			//只删第一个满足条件的msg
+		}
+	}
+	return opt;
+}
+
+
+
+/* delete a message list */
+static int handle_port_del_msglist(struct list_head* msg_head)
+{
+	uixo_message_t* msg_del;
+    list_for_each_entry(msg_del, msg_head, list) {
+        list_del(msg_del->list);
+        handle_msg_delmsg(msg_del);
+        free(msg_del);
+    }
+	return 0;
+}
+
