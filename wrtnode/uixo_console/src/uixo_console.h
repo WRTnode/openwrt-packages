@@ -23,11 +23,14 @@
 
 */
 #define DugPrintg  1
-#if DugPrintg 
+#if DugPrintg
 #define PR_DEBUG(fmt,args...) printf(fmt,##args)
 #else
 #define PR_DEBUG(fmt,args...) /*do nothing */
 #endif
+
+#define UIXO_MSG_ALWAYS_WAIT_MSG   (-1)
+#define UIXO_MSG_DELET_MSG         (-2)
 
 typedef enum {
 	UIXO_ERR_OK = 0,
@@ -50,17 +53,17 @@ typedef enum {
 } uixo_err_t;
 
 typedef struct {
-	struct list_head list;
-	char            cmd;
-	int             len;
-	int             timeout;
-	int             socketfd;
-	int             rttimes;
-	int             port_baudrate;
-	unsigned long   time;
-	unsigned long   currenttime;
-	char            data[MAX_UIXO_MSG_LEN];
-	char            port_name[MAX_UIXO_MSG_LEN];
+    struct list_head list;
+    char            cmd;
+    int             len;
+    int             timeout;
+    int             socketfd;
+    int             rttimes;
+    int             port_baudrate;
+    unsigned long   time;
+    unsigned long   currenttime;
+    char            data[MAX_UIXO_MSG_LEN];
+    char            port_name[MAX_UIXO_MSG_LEN];
     char            fn_name[MAX_UIXO_MSG_LEN];
 } uixo_message_t;
 
@@ -100,7 +103,6 @@ typedef enum {
 */
 int uixo_rx_handler(uixo_port_t* p,char* Callback);
 int del_msg(uixo_port_t* p,struct list_head* pos,struct list_head* n,char* msg_name,int socketfd,int flag);
-int FunTypes(struct list_head* list,uixo_message_t* onemsg,char* fn_name);
 uixo_err_t uixo_port_open(uixo_port_t* port);
 int del_msglist(uixo_port_t* p,struct list_head* pos,struct list_head* n);
 int uixo_transmit_data(uixo_port_t* p, const uixo_message_t* msg);
@@ -109,8 +111,12 @@ int uixo_receive_data_process(const char ch, uixo_message_t** msg,enum uixo_rx_s
 int uixo_save_cmd(uixo_port_t* p, const uixo_message_t* msg,char* Callback);
 int uixo_invalid_receive_data_process(void* port, char* str, int size);
 
-int uixo_console_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg)
+int uixo_console_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg);
 uixo_port_t* handle_port_mkport(const char* port_name, const int baudrate);
 int handle_port_delport(const char* port_name, struct list_head* port_head);
+int FunTypes(struct list_head* port_head, uixo_message_t* msg);
+int handle_msg_del_msg(uixo_message_t* msg);
+int handle_msg_del_msglist(struct list_head* msg_head);
+int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg);
 
 #endif

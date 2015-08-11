@@ -61,7 +61,7 @@ static void handle_port_uixo_default_set(uixo_port_t* port, const char* port_nam
 }
 
 /* open serial */
-static uixo_err_t handle_port_uixo_port_open(uixo_port_t* port)
+static int handle_port_uixo_port_open(uixo_port_t* port)
 {
 	uixo_err_t ret = UIXO_ERR_OK;
 
@@ -143,8 +143,8 @@ int handle_port_delport(const char* port_name, struct list_head* port_head)
         }
     }
     if(has_port) {
-        PR_DEBUG("%s: start to delete port = %s.\n", __func__, tmp_p->name)
-        list_del(tmp_p);
+        PR_DEBUG("%s: start to delete port = %s.\n", __func__, tmp_p->name);
+        list_del(&tmp_p->list);
 	    if(0 == strncmp(port_name, "/dev/tty", strlen("/dev/tty"))) {
             struct posix_serial* ps = tmp_p->port;
 

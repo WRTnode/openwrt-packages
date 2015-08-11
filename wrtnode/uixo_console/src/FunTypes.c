@@ -70,23 +70,14 @@ void* ReadPort(void* arg)
 	PR_DEBUG("after Callback = %s\n",Callback);
 }
 
-int FunTypes(struct list_head* port_head, uixo_message_t* msg){
-	uixo_port_t* p;
-	uixo_message_list_t* msg;
-	int ret = 0;
-	int opt1;
-	int flag = 0;
-	pthread_t pid;
-	pth_rx pth_rx;
-	char Callback[20] = {0};
-
+int FunTypes(struct list_head* port_head, uixo_message_t* msg) {
 	/*create a port*/
 	if(strcmp(msg->fn_name, "mkport") == 0) {
         uixo_port_t* port = NULL;
         uixo_port_t* tmp_p = NULL;
 
 		PR_DEBUG("%s: mkport, name=%s, baudrate = %d\n", __func__, msg->port_name, msg->port_baudrate);
-        list_for_each_entry(tmp_p, list, list) {
+        list_for_each_entry(tmp_p, port_head, list) {
             if(strcmp(tmp_p->name, msg->port_name) == 0) {
                 error_handle(msg->socketfd, "Port already exists\n");
                 return -1;
@@ -98,86 +89,49 @@ int FunTypes(struct list_head* port_head, uixo_message_t* msg){
             return -1;
 		}
 	    list_add_tail(&port->list, port_head);
+        return 0;
     }
 	/* delete a port */
 	else if(strcmp(msg->fn_name, "rmport") == 0){
 		PR_DEBUG("%s: rmport %s\n", __func__, msg->port_name);
 		if(handle_port_delport(msg->port_name, port_head) < 0) {
-			error_handle(msg->socketfd,"the port does not exist");
+			error_handle(msg->socketfd,"the port does not exist\n");
             return -1;
 		}
+        return 0;
 	}
 	/* handle a port */
-	else if(strcmp(fn_name,"hlport")==0){
-		opt1 = 0;
-		list_for_each_entry(p,list,list){
-			if(strcmp(p->name,onemsg->port_name)==0){
-				PR_DEBUG("strcmp p->msg_clinet->msg.port_name = %s\n",onemsg->port_name);
-                PR_DEBUG("rttimes = %d\n",onemsg->rttimes);
-				if(onemsg->rttimes == -2){
-					//delete对应msg
-					PR_DEBUG("del msg\n");
-					opt = del_msg(p,pos,n,onemsg->port_name,onemsg->socketfd,OTHERDEL);
-					if(opt == 0){
-						error_handle(onemsg->socketfd,"the msg does not exist");
+	else if(strcmp(msg->fn_name, "hlport") == 0) {
+        uixo_port_t* port = NULL;
+		list_for_each_entry(port, port_head, list) {
+			if(strcmp(port->name, msg->port_name) == 0) {
+				PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
+				if(msg->rttimes == UIXO_MSG_DELET_MSG) {
+					PR_DEBUG("%s: del msg\n", __func__);
+					if(handle_msg_del_msg(msg) < 0) {
+						error_handle(msg->socketfd,"delet message error\n");
+                        return -1;
 					}
-					else{
-						error_handle(onemsg->socketfd,"delect msg success");
-					}
+                    return 0;
 				}
-				else if((onemsg->rttimes == 0) || (onemsg->rttimes < -2)){
-					PR_DEBUG("not need add msglist\n");
-					//不需要返回值,只执行不加入链表
-					opt = uixo_transmit_data(p,onemsg);
-					if(opt < 0) {
-						error_handle(onemsg->socketfd,"transmit data fail");
-						return -UIXO_CONSOLE_ERR_PROC_MSG;
-					}
-					else
-						error_handle(onemsg->socketfd,"transmit data success");
-				}
-				else if(onemsg->rttimes == -1){
-					//需要一直有返回值
-					list_for_each_entry(msg,p->msghead,list){
-						if(msg->cmd == onemsg->cmd){
-							error_handle(onemsg->socketfd,"the cmd is working");
-							flag = 1;
-							break;
-						}
-					}
-					if(flag == 0){
-						//此port下没有相同的cmd在操作
-						list_add_tail(&(onemsg->list),p->msghead);
-						opt = uixo_transmit_data(p,onemsg);
-						if(opt < 0) {
-							error_handle(onemsg->socketfd,"transmit data fail");
-							return -UIXO_CONSOLE_ERR_PROC_MSG;
-						}
-						else
-							error_handle(onemsg->socketfd,"transmit data success");
-
-					}
-					flag = 0;
-				}
-				//加入链表并执行
-				else{
-					opt = uixo_transmit_data(p,onemsg);
-					if(opt < 0) {
-						error_handle(onemsg->socketfd,"transmit data fail");
-						return -UIXO_CONSOLE_ERR_PROC_MSG;
-					}
-					else
-						error_handle(onemsg->socketfd,"transmit data success");
-					list_add_tail(&(onemsg->list),p->msghead);
-				}
-				opt1 = 1;
-			}
-		}
-		if(opt1 == 0)
-			error_handle(onemsg->socketfd,"the port does not exist");
+                if(handle_msg_transmit_data(port, msg) < 0) {
+                    error_handle(msg->socketfd, "transmit data fail\n");
+                    return -1;
+                }
+                if(msg->rttimes != 0) {
+                    list_add_tail(&msg->list, &port->msghead);
+                }
+                return 0;
+            }
+        }
+        error_handle(msg->socketfd, "the port does not exist\n");
+        return -1;
 	}
-	else if(strcmp(fn_name,"regwait") == 0){
-	//	Callback = (char*)calloc(1,20);
+#if 0
+    else if(strcmp(fn_name,"regwait") == 0){
+        pthread_t pid;
+        pth_rx pth_rx;
+        char Callback[20] = {0};
 		strcpy(Callback,onemsg->port_baudrate);
 		list_for_each_entry(p,list,list){
 			if(strcmp(p->name,onemsg->port_name)==0){
@@ -190,4 +144,9 @@ int FunTypes(struct list_head* port_head, uixo_message_t* msg){
 			}
 		}
 	}
+#endif
+    else {
+        printf("%s: invalid message fn_name = %s.\n",__func__, msg->fn_name);
+        return -1;
+    }
 }

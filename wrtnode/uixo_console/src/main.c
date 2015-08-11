@@ -60,14 +60,14 @@ static int uixo_console_resolve_msg(const int sc, uixo_message_t* msg)
         return -UIXO_ERR_NULL;
     }
 
-    read_buf = (char*)calloc(MSG_BUFF_LEN, sizeof(*read_buf));
+    read_buf = (char*)calloc(MAX_UIXO_MSG_LEN, sizeof(*read_buf));
     if(NULL == read_buf) {
         printf("%s: calloc read buffer error.\n", __func__);
         return -UIXO_ERR_NULL;
     }
 
     msg->socketfd = sc;
-    readn = read(sc, read_buf, MSG_BUFF_LEN);
+    readn = read(sc, read_buf, MAX_UIXO_MSG_LEN);
     if((readn == 0)||(readn == -1)) {
         printf("%s: read client fd error. return = %ld", __func__, readn);
 		return -UIXO_ERR;
