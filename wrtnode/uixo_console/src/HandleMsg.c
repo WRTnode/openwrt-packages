@@ -153,40 +153,8 @@ int uixo_invalid_receive_data_process(void* port, char* str, int size)
 	ps->write(ps,str,size);
 	return 0;
 }
-int uixo_transmit_data(uixo_port_t* p, const uixo_message_list_t* msg)
-{
-	if((NULL == p)||
-			(NULL == p->port)||
-			(NULL == msg)) {
-		return -1;
-	}
 
-    if(strncmp(p->name, "/dev/spiS", strlen("/dev/spiS")) == 0) {
-        struct spi_mt7688* sm = (struct spi_mt7688*)(p->port);
-	    PR_DEBUG("send to port data = %s and len = %d",msg->data,msg->len);
-        int writen = 0;
-        writen = sm->write(sm, msg->data, msg->len);
-        printf("write to SPI = %s\n", msg->data);
-	    if(writen < 0) {
-		    printf("make message failed\n");
-		    return -1;
-	    }
-    }
-    else {
-    	/* got posix serial port */
-    	struct posix_serial* ps = (struct posix_serial*)p->port;
-    	/* call transmit data process */
-    	PR_DEBUG("send to port data = %s and len = %d",msg->data,msg->len);
-    	int writen = 0;
-    	writen = ps->write(ps, msg->data,msg->len);
-    	if(writen < 0) {
-    		printf("make message failed\n");
-    		return -1;
-    	}
-    }
-	return 0;
-}
-
+#if 0
 /*Traverse the list*/
 int TraverseMsg (struct list_head* list)
 {
@@ -210,6 +178,7 @@ int TraversePort (struct list_head* list)
 		PR_DEBUG("port = %s,portnum = %d\n",port->name,numport);
 	}
 }
+#endif
 
 static int _handle_msg_delmsg(uixo_message_t* msg)
 {
@@ -233,7 +202,103 @@ int handle_msg_del_msglist(struct list_head* msg_head)
 	return 0;
 }
 
+static int handle_msg_format_data(char* dest, const char* src)
+{
+    int len = 0;
+    if((NULL == dest) || (NULL == src)) {
+        printf("%s: input NULL\n", __func__);
+        return -1;
+    }
+
+    while('\0' != *src) {
+        if('\\' == *src) {
+            switch(*(src+1)) {
+            case 'x':
+            case 'X':
+                {
+                    int ret = 0;
+                    int val = 0;
+                    char tmp[3] = {0};
+                    tmp[0] = *(src+2);
+                    tmp[1] = *(src+3);
+                    ret = sscanf(tmp, "%x", &val);
+                    if(0 == ret) {
+                        printf("%s: HEX format error(0x%s).\n", __func__, tmp);
+                        return -1;
+                    }
+                    sprintf(dest, "%d", val);
+                    src += 4;
+                    while('\0' != *++dest)
+                        len++;
+                }
+                break;
+            case '0':
+                {
+                    dest++;
+                    len++;
+                    src += 2;
+                }
+                break;
+            default:
+                {
+                    *dest++ = '\\';
+                    *dest++ = *(src+1);
+                    len += 2;
+                    src += 2;
+                }
+            }
+        }
+        else {
+            *dest++ = *src++;
+            len++;
+        }
+    }
+}
+
 int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
 {
+    char* tx_data = NULL;
+    int data_len = 0;
 
+    if((NULL == port) || (NULL == port->port) || (NULL == msg)) {
+        printf("%s: input data is NULL\n", __func__);
+        return -1;
+    }
+    tx_data = (char*)calloc(MAX_UIXO_MSG_LEN, sizeof(char));
+    if(NULL == tx_data) {
+        printf("%s: calloc error\n", __func__);
+        return -1;
+    }
+    data_len = handle_msg_format_data(tx_data, msg->data);
+    if(data_len <= 0) {
+        printf("%s: data len = %d\n", __func__, data_len);
+        free(tx_data);
+        return -1;
+    }
+    PR_DEBUG("%s: TX=%s, LEN=%d", __func__, tx_data, data_len);
+
+    if(strncmp(port->name, "/dev/spiS", strlen("/dev/spiS")) == 0) {
+        struct spi_mt7688* sm = (struct spi_mt7688*)(port->port);
+        int writen = 0;
+	    PR_DEBUG("%s: send to port data = %s and len = %d", __func__, tx_data, data_len);
+        writen = sm->write(sm, tx_data, data_len);
+	    if(writen < 0) {
+            free(tx_data);
+		    printf("%s: send message failed\n", __func__);
+		    return -1;
+	    }
+    }
+    else {
+        struct posix_serial* ps = (struct posix_serial*)port->port;
+        int writen = 0;
+        PR_DEBUG("%s: send to port data = %s and len = %d", __func__, tx_data, data_len);
+        writen = ps->write(ps, tx_data, data_len);
+        if(writen < 0) {
+            free(tx_data);
+            printf("%s: send message failed\n", __func__);
+            return -1;
+        }
+    }
+    free(tx_data);
+    return 0;
 }

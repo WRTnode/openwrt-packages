@@ -40,7 +40,6 @@ Data        :2014.12.22
    static variables
  */
 static LIST_HEAD(uixo_ports_head);
-static LIST_HEAD(message_head);
 static int socketfd;
 
 /*
@@ -203,39 +202,24 @@ int main(int argc, char* argv[])
                         printf("%s: calloc message error.\n", __func__);
                         return -UIXO_ERR_NULL;
                     }
-                    ret = uixo_console_resolve_msg(fd_a[i], msg);
-
-
-
-
-
-                    if(ret < 0) {
-                        uixo_port_t* p = NULL;
-                        struct list_head* pos = 0;
-                        struct list_head* n = 0;
-
-                        close(fd_a[i]);
-                        list_for_each_entry(p, &uixo_ports_head, list) {
-                            del_msg(p, pos, n, NULL, fd_a[i], DELCLOSEFD);
-                        }
-                        FD_CLR(fd_a[i], &sreadfds);
-                        fd_a[i] = 0;
-                        printf("clinet[%d] close\n",i);
+                    if(uixo_console_resolve_msg(fd_a[i], msg) < 0) {
+                        printf("%s: read invalid message.\n", __func__);
+                        return -UIXO_ERR_NULL;
+                    }
+                    if(FunTypes(&uixo_ports_head, msg) < 0) {
+                        printf("%s: parse message error.\n", __func__);
+                        return -UIXO_ERR_NULL;
                     }
                 }
             }
             if(FD_ISSET(socketfd, &sreadfds)) {
                 int sc = 0;
                 sc = accept(socketfd, NULL, NULL);
-                PR_DEBUG("clinet accept\n");
+                PR_DEBUG("%s: clinet accept\n", __func__);
                 if(sc < 0) {
                     continue;
                 }
                 if(connct_num < BACKLOG) {
-                    /*
-                    当有客户端断开，新客户端进来的时候connct_num不再加1，而是取代断开
-                    的一个，如果没有断开的就connct_num++
-                    */
                     for(i=0; i<connct_num; i++) {
                         if(fd_a[i] == 0) {
                             fd_a[i] = sc;
@@ -247,7 +231,7 @@ int main(int argc, char* argv[])
                     }
                 }
                 else {
-                    printf("max connetction arrive, bye\n");
+                    printf("%s: max connetction arrive, bye\n", __func__);
                     write(sc, "max connetction arrive, bye\n",
                           strlen("max connetction arrive, bye\n"));
                     close(sc);

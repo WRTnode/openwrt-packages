@@ -101,19 +101,19 @@ int FunTypes(struct list_head* port_head, uixo_message_t* msg) {
         return 0;
 	}
 	/* handle a port */
-	else if(strcmp(msg->fn_name, "hlport") == 0) {
+    else if(strcmp(msg->fn_name, "hlport") == 0) {
         uixo_port_t* port = NULL;
-		list_for_each_entry(port, port_head, list) {
-			if(strcmp(port->name, msg->port_name) == 0) {
-				PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
-				if(msg->rttimes == UIXO_MSG_DELET_MSG) {
-					PR_DEBUG("%s: del msg\n", __func__);
-					if(handle_msg_del_msg(msg) < 0) {
-						error_handle(msg->socketfd,"delet message error\n");
+        list_for_each_entry(port, port_head, list) {
+            if(strcmp(port->name, msg->port_name) == 0) {
+                PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
+                if(msg->rttimes == UIXO_MSG_DELET_MSG) {
+                    PR_DEBUG("%s: del msg\n", __func__);
+                    if(handle_msg_del_msg(msg) < 0) {
+                        error_handle(msg->socketfd,"delet message error\n");
                         return -1;
-					}
+                    }
                     return 0;
-				}
+                }
                 if(handle_msg_transmit_data(port, msg) < 0) {
                     error_handle(msg->socketfd, "transmit data fail\n");
                     return -1;
@@ -126,7 +126,7 @@ int FunTypes(struct list_head* port_head, uixo_message_t* msg) {
         }
         error_handle(msg->socketfd, "the port does not exist\n");
         return -1;
-	}
+    }
 #if 0
     else if(strcmp(fn_name,"regwait") == 0){
         pthread_t pid;
