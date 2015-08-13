@@ -26,10 +26,11 @@ Data        :2015.08.13
 #include "list.h"
 #include "uixo_console.h"
 
-#define MAX(a,b)  ((a) > (b)? (a): (b))
-#define MIN(x,y)  ((x) < (y)? (x): (y))
-#define PORT 8000
+#define MAX(a,b)  (((a) > (b))? (a): (b))
+#define MIN(x,y)  (((x) < (y))? (x): (y))
+#define PORT                         (8000)
 #define RESOLVE_MESSAGE_CLOSE_PORT   (-10)
+#define BACKLOG                      (100)
 
 struct uixo_client {
     struct list_head list;
@@ -70,8 +71,8 @@ static int uixo_console_resolve_msg(const int sc, uixo_message_t* msg)
     readn = read(sc, read_buf, MAX_UIXO_MSG_LEN);
     if((readn == 0)||(readn == -1)) {
         printf("%s: read client fd error. return = %ld", __func__, readn);
-		return -UIXO_ERR;
-	}
+        return -1;
+    }
 
     PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
 
@@ -84,19 +85,12 @@ static int uixo_console_resolve_msg(const int sc, uixo_message_t* msg)
         printf("%s: uixo message parse err.\n", __func__);
         return -1;
     }
+    free(read_buf);
     return 0;
 }
 
-static void uixo_console_port_close(struct list_head list){
-    uixo_port_t* port;
-    posix_serial_init_t port_conf;
-    struct posix_serial* ps = NULL;
-    list_for_each_entry(port, &list, list){
-        if(ps->close(ps)<0) {
-            printf("%s: close %s port error!\n", __func__, port->name);
-        }
-        free(ps);
-    }
+static void uixo_console_port_close(){
+    handle_port_remove_port_list();
 }
 
 static int uixo_console_create_socket(void)
@@ -138,11 +132,11 @@ static int uixo_console_select_fds(fd_set* pfds)
 {
     int max_sockfds = socketfd;
     struct timeval select_tv = {1,0}; //1s + 0ms
-    struct tmp_client* = NULL;
+    struct uixo_client* tmp_client = NULL;
 
     FD_ZERO(pfds);
     FD_SET(socketfd, pfds);
-    list_for_each_entry(tmp_client, uixo_client_head, list) {
+    list_for_each_entry(tmp_client, &uixo_client_head, list) {
         if(0 != tmp_client->fd) {
             FD_SET(tmp_client->fd, pfds);
             max_sockfds = MAX(max_sockfds, tmp_client->fd);
@@ -155,11 +149,11 @@ static int uixo_console_select_fds(fd_set* pfds)
 static int uixo_console_client_remove(const int fd)
 {
     struct uixo_client* tmp_client = NULL;
-    list_for_each_entry(tmp_client, uixo_client_head, list) {
+    list_for_each_entry(tmp_client, &uixo_client_head, list) {
         if(fd == tmp_client->fd) {
             list_del(&tmp_client->list);
             close(tmp_client->fd);
-            free(tmp_client)
+            free(tmp_client);
             connct_num--;
             PR_DEBUG("%s: client removed.\n", __func__);
             return 0;
@@ -218,7 +212,7 @@ static int uixo_console_handle_host(void)
     }
     INIT_LIST_HEAD(&client->list);
     client->fd = sc;
-    list_add_tail(&client->list, uixo_client_head);
+    list_add_tail(&client->list, &uixo_client_head);
     connct_num++;
     return 0;
 }
@@ -253,7 +247,7 @@ int main(int argc, char* argv[])
         else { /* can read */
             struct uixo_client* tmp_client = NULL;
 
-            list_for_each_entry(tmp_client, uixo_client_head, list) {
+            list_for_each_entry(tmp_client, &uixo_client_head, list) {
                 PR_DEBUG("%s: Have client send data in.\n", __func__);
                 if(FD_ISSET(tmp_client->fd, &sreadfds)) {
                     if(uixo_console_handle_client(tmp_client->fd) < 0) {
@@ -270,6 +264,6 @@ int main(int argc, char* argv[])
             }
         }
     }
-    uixo_console_port_close(uixo_ports_head);
+    uixo_console_port_close();
     return 0;
 }

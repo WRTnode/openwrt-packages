@@ -15,8 +15,6 @@ Data        :2015.06.03
 
 #include "uixo_console.h"
 
-#define OTHERDEL  1
-
 typedef struct{
 	struct list_head* list;
 	char* port_name;
@@ -34,7 +32,7 @@ static void error_handle(int fd,char* string)
 	memset(retstr,0,40);
 }
 
-
+#if 0
 void* ReadPort(void* arg)
 {
 	struct list_head* list;
@@ -69,63 +67,35 @@ void* ReadPort(void* arg)
 	}
 	PR_DEBUG("after Callback = %s\n",Callback);
 }
+#endif
 
-int FunTypes(struct list_head* port_head, uixo_message_t* msg) {
+int FunTypes(uixo_message_t* msg)
+{
 	/*create a port*/
 	if(strcmp(msg->fn_name, "mkport") == 0) {
-        uixo_port_t* port = NULL;
-        uixo_port_t* tmp_p = NULL;
-
 		PR_DEBUG("%s: mkport, name=%s, baudrate = %d\n", __func__, msg->port_name, msg->port_baudrate);
-        list_for_each_entry(tmp_p, port_head, list) {
-            if(strcmp(tmp_p->name, msg->port_name) == 0) {
-                error_handle(msg->socketfd, "Port already exists\n");
-                return -1;
-            }
-        }
-		port = handle_port_mkport(msg->port_name, msg->port_baudrate);
-		if(NULL == port) {
+		if(NULL == handle_port_mkport(msg->port_name, msg->port_baudrate)) {
 			error_handle(msg->socketfd,"mkport error\n");
             return -1;
 		}
-	    list_add_tail(&port->list, port_head);
         return 0;
     }
-	/* delete a port */
-	else if(strcmp(msg->fn_name, "rmport") == 0){
-		PR_DEBUG("%s: rmport %s\n", __func__, msg->port_name);
-		if(handle_port_delport(msg->port_name, port_head) < 0) {
-			error_handle(msg->socketfd,"the port does not exist\n");
+    /* delete a port */
+    else if(strcmp(msg->fn_name, "rmport") == 0) {
+        PR_DEBUG("%s: rmport %s\n", __func__, msg->port_name);
+        if(handle_port_delport(msg->port_name) < 0) {
+            error_handle(msg->socketfd,"the port does not exist\n");
             return -1;
-		}
-        return 0;
-	}
-	/* handle a port */
-    else if(strcmp(msg->fn_name, "hlport") == 0) {
-        uixo_port_t* port = NULL;
-        list_for_each_entry(port, port_head, list) {
-            if(strcmp(port->name, msg->port_name) == 0) {
-                PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
-                if(msg->rttimes == UIXO_MSG_DELET_MSG) {
-                    PR_DEBUG("%s: del msg\n", __func__);
-                    if(handle_msg_del_msg(msg) < 0) {
-                        error_handle(msg->socketfd,"delet message error\n");
-                        return -1;
-                    }
-                    return 0;
-                }
-                if(handle_msg_transmit_data(port, msg) < 0) {
-                    error_handle(msg->socketfd, "transmit data fail\n");
-                    return -1;
-                }
-                if(msg->rttimes != 0) {
-                    list_add_tail(&msg->list, &port->msghead);
-                }
-                return 0;
-            }
         }
-        error_handle(msg->socketfd, "the port does not exist\n");
-        return -1;
+        return 0;
+    }
+    /* handle a port */
+    else if(strcmp(msg->fn_name, "hlport") == 0) {
+        if(handle_port_hlport(msg) < 0) {
+            error_handle(msg->socketfd,"hlport error\n");
+            return -1;
+        }
+        return 0;
     }
 #if 0
     else if(strcmp(fn_name,"regwait") == 0){

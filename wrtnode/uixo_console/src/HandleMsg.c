@@ -187,8 +187,7 @@ static int _handle_msg_delmsg(uixo_message_t* msg)
 
 int handle_msg_del_msg(uixo_message_t* msg)
 {
-    list_del(&msg->list);
-    _handle_msg_delmsg(msg);
+    printf("%s: not work with delete message\n", __func__);
     return 0;
 }
 

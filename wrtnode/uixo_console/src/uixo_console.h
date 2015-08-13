@@ -113,8 +113,10 @@ int uixo_invalid_receive_data_process(void* port, char* str, int size);
 
 int uixo_console_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg);
 uixo_port_t* handle_port_mkport(const char* port_name, const int baudrate);
-int handle_port_delport(const char* port_name, struct list_head* port_head);
-int FunTypes(struct list_head* port_head, uixo_message_t* msg);
+int handle_port_delport(const char* port_name);
+int handle_port_hlport(uixo_message_t* msg);
+void handle_port_remove_port_list(void);
+int FunTypes(uixo_message_t* msg);
 int handle_msg_del_msg(uixo_message_t* msg);
 int handle_msg_del_msglist(struct list_head* msg_head);
 int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg);

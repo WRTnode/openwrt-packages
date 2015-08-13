@@ -152,29 +152,37 @@ static int handle_port_uixo_port_open(uixo_port_t* port)
 uixo_port_t* handle_port_mkport(const char* port_name, const int baudrate)
 {
     uixo_port_t* port = NULL;
+    uixo_port_t* tmp_p = NULL;
 
-	port = (uixo_port_t*)calloc(1, sizeof(uixo_port_t));
-	if(NULL == port) {
-		return NULL;
-		printf("%s: Failed to calloc uixo_port_t!\n", __func__);
-	}
-	handle_port_uixo_default_set(port, port_name, baudrate);
-	INIT_LIST_HEAD(&port->msghead);
-	if(handle_port_uixo_port_open(port) < 0) {
-		printf("%s: open port error\n", __func__);
-		return NULL;
-	}
-	return port;
+    list_for_each_entry(tmp_p, &uixo_ports_head, list) {
+        if(strcmp(tmp_p->name, port_name) == 0) {
+            printf("%s: Port(%s) already exists\n", __func__, port_name);
+            return NULL;
+        }
+    }
+
+    port = (uixo_port_t*)calloc(1, sizeof(uixo_port_t));
+    if(NULL == port) {
+        return NULL;
+        printf("%s: Failed to calloc uixo_port_t!\n", __func__);
+    }
+    handle_port_uixo_default_set(port, port_name, baudrate);
+    INIT_LIST_HEAD(&port->msghead);
+    if(handle_port_uixo_port_open(port) < 0) {
+        printf("%s: open port error\n", __func__);
+        return NULL;
+    }
+    return port;
 }
 
 /* delete a port */
-int handle_port_delport(const char* port_name, struct list_head* port_head)
+int handle_port_delport(const char* port_name)
 {
     int has_port = 0;
 	uixo_port_t* tmp_p = NULL;
 	uixo_message_t* msg = NULL;
 
-    list_for_each_entry(tmp_p, port_head, list) {
+    list_for_each_entry(tmp_p, &uixo_ports_head, list) {
         if(strcmp(tmp_p->name, port_name) == 0) {
             has_port = 1;
             break;
@@ -204,4 +212,32 @@ int handle_port_delport(const char* port_name, struct list_head* port_head)
     else {
         return -1;
     }
+}
+
+int handle_port_hlport(uixo_message_t* msg)
+{
+    uixo_port_t* port = NULL;
+    list_for_each_entry(port, &uixo_ports_head, list) {
+        if(strcmp(port->name, msg->port_name) == 0) {
+        PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
+            if(msg->rttimes == UIXO_MSG_DELET_MSG) {
+                PR_DEBUG("%s: del msg\n", __func__);
+                if(handle_msg_del_msg(msg) < 0) {
+                    printf("%s: port(%s) delet message error\n", __func__, port->name);
+                    return -1;
+                }
+                return 0;
+            }
+            if(handle_msg_transmit_data(port, msg) < 0) {
+                printf("%s: port(%s) transmit data fail.\n", __func__, port->name);
+                return -1;
+            }
+            if(msg->rttimes != 0) {
+                list_add_tail(&msg->list, &port->msghead);
+            }
+            return 0;
+        }
+    }
+    printf("%s: the port(%s) does not exist\n", __func__, msg->port_name);
+    return -1;
 }
