@@ -19,6 +19,44 @@ Data        :2015.06.03
 #include "spi_mt7688.h"
 #include "uixo_console.h"
 
+static LIST_HEAD(uixo_ports_head);
+
+
+
+
+
+
+
+
+
+
+
+static int uixo_console_read_port(struct list_head* list)
+{
+    uixo_err_t ret = UIXO_ERR_OK;
+    uixo_port_t* port = NULL;
+    if(NULL==list) {
+        return -UIXO_ERR_NULL;
+    }
+    list_for_each_entry(port, list, list) {
+        if((strncmp(port->name,"/dev/tty",8)==0) ||
+           (strncmp(port->name,"/dev/spi",strlen("/dev/spi"))==0)){
+            ret = uixo_rx_handler(port, NULL);
+            if(ret != UIXO_ERR_OK) {
+                printf("uixo rx handler err\n");
+                return -LOOP_UIXO_RX_HANDLER_ERROR;
+            }
+        }
+    }
+    return ret;
+}
+
+
+
+
+
+
+
 /* default set serial */
 static void handle_port_uixo_default_set(uixo_port_t* port, const char* port_name, const int baudrate)
 {
