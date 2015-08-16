@@ -284,6 +284,9 @@ static int posix_serial_close(struct posix_serial* s)
         /* free posix_serial */
         free(s);
     }
+    else {
+        printf("%s: posix serial(%s) is not open, close failed.\n", __func__, s->sb->get_port(s->sb));
+    }
     return 0;
 
 POSIX_SERIAL_CLOSE_INPUT_ERROR:
@@ -479,7 +482,6 @@ POSIX_SERIAL_FLUSH_OUTPUT_INPUT_ERROR:
 */
 struct posix_serial* posix_serial_port_init(posix_serial_init_t* psp)
 {
-	printf("posix_serial_port_init\n");
     serial_init_t* sp = NULL;
     struct posix_serial* ps = NULL;
 

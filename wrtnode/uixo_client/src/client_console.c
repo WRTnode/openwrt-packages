@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+#define UIXO_HEAD_LEN     (5)
+#define MAX_UIXO_MSG_LEN  (4096)
+
 #define PORT 8000
 typedef struct{
 	int sfd;
@@ -22,6 +25,7 @@ void* work(void* arg1){
 	//加1，是因为发送出去一条消息会收到一条打印信息
 	int rttimes = (*arg).times + 1;
 
+    printf("%s: in thread.\n", __func__);
 	for(;;){
 		size = read(cs,buff,sizeof(buff));
 		if(size > 0){
@@ -40,6 +44,7 @@ void* work(void* arg1){
 			return 0;
 		}
 	}
+    send(cs, "exit", sizeof("exit"), 0);
 	close(cs);
 	return 0;
 
@@ -74,22 +79,27 @@ int main(int argc,char *argv[])
 	if(ret < 0){
 		printf("connect error\n");
 	}
+#if 0
 	printf("Ple input a similar [1234:2:m:22:3:115200:/dev/ttyS0:mkport],input 'quit' to exit\n");
-	rttimes = atoi(argv[3]);
-	argument arg;
-	arg.sfd = cs;
-	arg.times = rttimes;
-	ret = pthread_create(&tpid, NULL,work,&arg) ;
-	if(ret != 0){
-		printf("pthread_create fail\n");
-		return -1;
-	}
+#endif
+    rttimes = atoi(argv[3]);
+    if(0 != rttimes) {
+	    argument arg;
+	    arg.sfd = cs;
+	    arg.times = rttimes;
+	    ret = pthread_create(&tpid, NULL,work,&arg) ;
+	    if(ret != 0){
+		    printf("pthread_create fail\n");
+		    return -1;
+	    }
+    }
 	strcpy(cstring,argv[2]);
 	string_len = strlen(cstring);
 	//加换行符，否则导致阻塞
 	cstring[string_len] = '\n';
     cstring[string_len+1] = '\0';
 
+#if 0
 	if(strncmp(cstring,"quit",4)==0){
 		printf("quit client\n");
 		close(cs);
@@ -97,12 +107,25 @@ int main(int argc,char *argv[])
 	}
 	else if(cstring[0]!='['|| cstring[(string_len)-1]!=']')
 		printf("Ple input right format as '[time:len:cmd:data:/dev/device_name]'\n");
-
+#endif
+    {
+        char head[UIXO_HEAD_LEN] = {0};
+        string_len = strlen(cstring);
+        if(string_len > MAX_UIXO_MSG_LEN) {
+            printf("%s: input string too long. len=%d.\n", __func__, string_len);
+        }
+        sprintf(head, "%04d", string_len);
+        ret = send(cs, head, UIXO_HEAD_LEN, 0);
+	    if(ret < 0){
+		    printf("send error\n");
+	    }
+    }
 	ret = send(cs,cstring,strlen(cstring),0);
 	if(ret < 0){
 		printf("send error\n");
 	}
 	if(rttimes == 0){
+        send(cs, "exit", sizeof("exit"), 0);
 		close(cs);
 		return 0;
 	}

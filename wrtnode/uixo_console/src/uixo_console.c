@@ -18,18 +18,20 @@ Data        :2014.11.06
 #include "serial_posix.h"
 #include "uixo_console.h"
 
+long calloc_count = 0;
+
 static int _find_string_between_two_char(const char* src, const char start, const char end, char* dest)
 {
     char* sptr = NULL;
-    char* tmp = NULL;
+    char* eptr = NULL;
     int len = 0;
 
     if((NULL == src) || (NULL == dest)) {
         printf("%s: input data or dest buffer is NULL\n", __func__);
         return -1;
     }
-    if(strlen(src) > MAX_BUFFER_LEN) {
-        printf("%s: input data is too long, MAX is %d\n", __func__, MAX_BUFFER_LEN);
+    if(strlen(src) > MAX_UIXO_MSG_LEN) {
+        printf("%s: input data is too long, MAX is %d\n", __func__, MAX_UIXO_MSG_LEN);
         return -1;
     }
 
@@ -38,12 +40,13 @@ static int _find_string_between_two_char(const char* src, const char start, cons
         printf("%s: no %c in %s\n", __func__, start, src);
         return -1;
     }
+    eptr = ++sptr;
 
-    while((*tmp != end) && (*tmp != '\0')) {
+    while((*eptr != end) && (*eptr != '\0')) {
         len++;
-        tmp++;
+        eptr++;
     }
-    if(*tmp == '\0') {
+    if(*eptr == '\0') {
         printf("%s: no %c in %s\n", __func__, end, src);
         return -1;
     }
@@ -69,7 +72,7 @@ static int uixo_console_load_cmd(const char* data, const ssize_t len, uixo_messa
         return -UIXO_CONSOLE_ERR_INPUT_NULL;
     }
 
-    valid_data = (char*)calloc(MAX_UIXO_MSG_LEN, sizeof(*valid_data));
+    valid_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*valid_data));
     if(NULL == valid_data) {
         printf("%s: calloc error\n", __func__);
         return -UIXO_ERR_NULL;
@@ -82,34 +85,50 @@ static int uixo_console_load_cmd(const char* data, const ssize_t len, uixo_messa
     }
     PR_DEBUG("%s: got valid data = %s, len = %d.\n", __func__, valid_data, ret);
 
-    ret = sscanf(valid_data, "%ld:%d:%c:%s:%d:%d:%s:%s",
-                 &msg->time,
-                 &msg->len,
-                 &msg->cmd,
-                 msg->data,
-                 &msg->rttimes,
-                 &msg->port_baudrate,
-                 msg->port_name,
-                 msg->fn_name);
+    {
+        char* word = NULL;
+        char* sep = ":";
+        ret = 0;
+
+        for(word = strtok(valid_data, sep);
+            word;
+            word = strtok(NULL, sep)) {
+            PR_DEBUG("%s: strtok word = %s\n", __func__, word);
+            switch(ret) {
+            case 0: ret += sscanf(word, "%ld", &msg->time); break;
+            case 1: ret += sscanf(word, "%d", &msg->len); break;
+            case 2: ret += sscanf(word, "%c", &msg->cmd); break;
+            case 3: ret += sscanf(word, "%s", msg->data); break;
+            case 4: ret += sscanf(word, "%d", &msg->rttimes); break;
+            case 5: ret += sscanf(word, "%d", &msg->port_baudrate); break;
+            case 6: ret += sscanf(word, "%s", msg->port_name); break;
+            case 7: ret += sscanf(word, "%s", msg->fn_name); break;
+            default: break;
+            }
+        }
+    }
     if(ret < 8) {
         goto LOAD_CMD_DATA_FORMAT_ERROR;
     }
-    PR_DEBUG("got a valid message.\n
-             time=%ld,len=%d,cmd=%c,data=%s,rttimes=%d,baudrate=%d,device=%s,fn=%s\n",
+    PR_DEBUG("got a valid message.\ntime=%ld,len=%d,cmd=%c,data=%s,rttimes=%d,baudrate=%d,device=%s,fn=%s\n",
              msg->time, msg->len, msg->cmd, msg->data, msg->rttimes, msg->port_baudrate,
              msg->port_name, msg->fn_name);
 
-    free(valid_data);
+    uixo_console_free(valid_data);
     return 0;
 
 LOAD_CMD_DATA_FORMAT_ERROR:
-    printf("%s: message format error. message = %s.\n", __func__, data);
+    printf("%s: message format error. message = %s.\n", __func__, valid_data);
+    printf("time=%ld,len=%d,cmd=%c,data=%s,rttimes=%d,baudrate=%d,device=%s,fn=%s\n",
+             msg->time, msg->len, msg->cmd, msg->data, msg->rttimes, msg->port_baudrate,
+             msg->port_name, msg->fn_name);
     return -UIXO_CONSOLE_ERR_INPUT_NULL;
 }
 
 /*
 	handle the data from port
 */
+#if 0
 int uixo_rx_handler(uixo_port_t* p,char* Callback)
 {
 	int ret = 0;
@@ -166,6 +185,7 @@ int uixo_shell(char * data){
 	pclose(fstream);
 	return 0;
 }
+#endif
 
 /* handle the data from client */
 int uixo_console_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg)

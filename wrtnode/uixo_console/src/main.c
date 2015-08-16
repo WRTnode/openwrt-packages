@@ -54,39 +54,49 @@ static int usage(const char* name)
 
 static int uixo_console_resolve_msg(const int sc, uixo_message_t* msg)
 {
-    char* read_buf = NULL;
+    char head[UIXO_HEAD_LEN] = {0};
     ssize_t readn = 0;
-    uixo_err_t ret = 0;
+
     if(NULL == msg) {
         return -1;
     }
 
-    read_buf = (char*)calloc(MAX_UIXO_MSG_LEN, sizeof(*read_buf));
-    if(NULL == read_buf) {
-        printf("%s: calloc read buffer error.\n", __func__);
-        return -1;
-    }
-
     msg->socketfd = sc;
-    readn = read(sc, read_buf, MAX_UIXO_MSG_LEN);
-    if((readn == 0)||(readn == -1)) {
-        printf("%s: read client fd error. return = %ld", __func__, readn);
+    readn = read(sc, head, UIXO_HEAD_LEN);
+    PR_DEBUG("%s: got message head = %s, len = %ld.\n", __func__, head, readn);
+    if(readn != UIXO_HEAD_LEN) {
+        printf("%s: read client head error. return = %ld", __func__, readn);
         return -1;
     }
 
-    PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
-
-    if(strncmp(read_buf, "exit", strlen("exit")) == 0) {
+    if(0 == strcmp(head, "exit")) {
         printf("%s: read client exit message.\n", __func__);
         return RESOLVE_MESSAGE_CLOSE_PORT;
     }
+    else {
+        char* read_buf = NULL;
+        int buf_len = atoi(head);
+        read_buf = (char*)uixo_console_calloc(buf_len+1, sizeof(*read_buf));
+        if(NULL == read_buf) {
+            printf("%s: calloc read buffer error.\n", __func__);
+            return -1;
+        }
+        readn = read(sc, read_buf, buf_len);
+        if((readn != buf_len)||(readn == -1)) {
+            printf("%s: read client fd error. return = %ld\n", __func__, readn);
+            uixo_console_free(read_buf);
+            return -1;
+        }
+        PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
 
-    if(uixo_console_parse_msg(read_buf, readn, msg) != UIXO_ERR_OK) {
-        printf("%s: uixo message parse err.\n", __func__);
-        return -1;
+        if(uixo_console_parse_msg(read_buf, readn, msg) != UIXO_ERR_OK) {
+            printf("%s: uixo message parse err.\n", __func__);
+            uixo_console_free(read_buf);
+            return -1;
+        }
+        uixo_console_free(read_buf);
+        return 0;
     }
-    free(read_buf);
-    return 0;
 }
 
 static void uixo_console_port_close(){
@@ -153,7 +163,7 @@ static int uixo_console_client_remove(const int fd)
         if(fd == tmp_client->fd) {
             list_del(&tmp_client->list);
             close(tmp_client->fd);
-            free(tmp_client);
+            uixo_console_free(tmp_client);
             connct_num--;
             PR_DEBUG("%s: client removed.\n", __func__);
             return 0;
@@ -169,7 +179,8 @@ static int uixo_console_handle_client(int fd)
     uixo_message_t* msg = NULL;
 
     PR_DEBUG("%s: client(fd = %d) send data in.\n", __func__, fd);
-    msg = (uixo_message_t*)calloc(1, sizeof(*msg));
+    msg = (uixo_message_t*)uixo_console_calloc(1, sizeof(*msg));
+    PR_DEBUG("%s: msg addr = 0x%08x\n", __func__, (int)msg);
     if(NULL == msg) {
         printf("%s: calloc message error.\n", __func__);
         return -1;
@@ -246,8 +257,9 @@ int main(int argc, char* argv[])
         }
         else { /* can read */
             struct uixo_client* tmp_client = NULL;
+            struct uixo_client* tmp_client_next = NULL;
 
-            list_for_each_entry(tmp_client, &uixo_client_head, list) {
+            list_for_each_entry_safe(tmp_client, tmp_client_next, &uixo_client_head, list) {
                 PR_DEBUG("%s: Have client send data in.\n", __func__);
                 if(FD_ISSET(tmp_client->fd, &sreadfds)) {
                     if(uixo_console_handle_client(tmp_client->fd) < 0) {
@@ -257,6 +269,7 @@ int main(int argc, char* argv[])
                 }
             }
             if(FD_ISSET(socketfd, &sreadfds)) {
+                PR_DEBUG("%s: host got data.\n", __func__);
                 if(uixo_console_handle_host() < 0) {
                     printf("%s: hose handle failed.\n", __func__);
                     continue;

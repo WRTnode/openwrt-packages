@@ -11,6 +11,8 @@ Data        :2015.06.03
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <pthread.h>
+#include <sys/socket.h>
 
 #include "serial.h"
 #include "serial_posix.h"
@@ -18,21 +20,7 @@ Data        :2015.06.03
 #include "spi_mt7688.h"
 #include "uixo_console.h"
 
-#define OTHERDEL  1
-
-enum uixo_rx_status {
-	UIXO_RX_STATUS_IDLE = 0,
-	UIXO_RX_STATUS_GOT_INVALID,
-	UIXO_RX_STATUS_GOT_HEAD,
-	UIXO_RX_STATUS_GOT_MSG
-};
-enum uixo_cmd_status {
-	UIXO_CMD_STATUS_IDLE = 0,
-	UIXO_CMD_STATUS_GOT_LEN,
-	UIXO_CMD_STATUS_GOT_CMD
-};
-
-
+#if 0
 int uixo_receive_data(uixo_port_t* p, uixo_message_list_t** msgp)
 {
 	int ret = 0;
@@ -154,7 +142,6 @@ int uixo_invalid_receive_data_process(void* port, char* str, int size)
 	return 0;
 }
 
-#if 0
 /*Traverse the list*/
 int TraverseMsg (struct list_head* list)
 {
@@ -182,7 +169,8 @@ int TraversePort (struct list_head* list)
 
 static int _handle_msg_delmsg(uixo_message_t* msg)
 {
-    free(msg);
+    uixo_console_free(msg);
+    return 0;
 }
 
 int handle_msg_del_msg(uixo_message_t* msg)
@@ -252,6 +240,7 @@ static int handle_msg_format_data(char* dest, const char* src)
             len++;
         }
     }
+    return len;
 }
 
 int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
@@ -263,7 +252,7 @@ int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
         printf("%s: input data is NULL\n", __func__);
         return -1;
     }
-    tx_data = (char*)calloc(MAX_UIXO_MSG_LEN, sizeof(char));
+    tx_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(char));
     if(NULL == tx_data) {
         printf("%s: calloc error\n", __func__);
         return -1;
@@ -271,33 +260,87 @@ int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
     data_len = handle_msg_format_data(tx_data, msg->data);
     if(data_len <= 0) {
         printf("%s: data len = %d\n", __func__, data_len);
-        free(tx_data);
+        uixo_console_free(tx_data);
         return -1;
     }
-    PR_DEBUG("%s: TX=%s, LEN=%d", __func__, tx_data, data_len);
+    PR_DEBUG("%s: TX=%s, LEN=%d\n", __func__, tx_data, data_len);
 
     if(strncmp(port->name, "/dev/spiS", strlen("/dev/spiS")) == 0) {
         struct spi_mt7688* sm = (struct spi_mt7688*)(port->port);
         int writen = 0;
-	    PR_DEBUG("%s: send to port data = %s and len = %d", __func__, tx_data, data_len);
+        PR_DEBUG("%s: send to port data = %s and len = %d\n", __func__, tx_data, data_len);
         writen = sm->write(sm, tx_data, data_len);
-	    if(writen < 0) {
-            free(tx_data);
-		    printf("%s: send message failed\n", __func__);
-		    return -1;
-	    }
-    }
-    else {
-        struct posix_serial* ps = (struct posix_serial*)port->port;
-        int writen = 0;
-        PR_DEBUG("%s: send to port data = %s and len = %d", __func__, tx_data, data_len);
-        writen = ps->write(ps, tx_data, data_len);
         if(writen < 0) {
-            free(tx_data);
+            uixo_console_free(tx_data);
             printf("%s: send message failed\n", __func__);
             return -1;
         }
     }
-    free(tx_data);
+    else {
+        struct posix_serial* ps = (struct posix_serial*)port->port;
+        int writen = 0;
+        PR_DEBUG("%s: send to port data = %s and len = %d\n", __func__, tx_data, data_len);
+        writen = ps->write(ps, tx_data, data_len);
+        if(writen < 0) {
+            uixo_console_free(tx_data);
+            printf("%s: send message failed\n", __func__);
+            return -1;
+        }
+    }
+    uixo_console_free(tx_data);
+    return 0;
+}
+
+void* _handle_msg_receive_data_thread(void* arg)
+{
+    uixo_port_t* port = (uixo_port_t*)arg;
+    uixo_message_t* msg = NULL;
+    PR_DEBUG("%s: got port(%s) in receive thread.\n", __func__, port->name);
+
+    list_for_each_entry(msg, &port->msghead, list) {
+        char* rx_data = NULL;
+        rx_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*rx_data));
+        PR_DEBUG("%s: got a message, rttimes=%d\n", __func__, msg->rttimes);
+        if(UIXO_MSG_ALWAYS_WAIT_MSG == msg->rttimes) {
+            while(1) {
+                int len = 0;
+                len = handle_port_read_line(port, rx_data, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
+                if(0 != len) {
+                    printf("%s", rx_data);
+                    if(send(msg->socketfd, rx_data, len, 0) < 0) {
+                        printf("%s: send to client error.\n", __func__);
+                    }
+                }
+                memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
+            }
+        }
+        else {
+            while(msg->rttimes--) {
+                int len = 0;
+                len = handle_port_read_line(port, rx_data, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
+                if(0 != len) {
+                    printf("%s", rx_data);
+                    if(send(msg->socketfd, rx_data, len, 0) < 0) {
+                        printf("%s: send to client error.\n", __func__);
+                    }
+                }
+                memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
+            }
+        }
+    }
+
+    PR_DEBUG("%s: port(%s) message list is empty.\n", __func__, port->name);
+    close(msg->socketfd);
+    PR_DEBUG("%s: client(%d) closed.\n", __func__, msg->socketfd);
+
+    return 0;
+}
+
+int handle_msg_receive_data(uixo_port_t* port)
+{
+    if(pthread_create(&port->rx_msg_thread, NULL, _handle_msg_receive_data_thread, port) < 0) {
+        printf("%s: create port(%s) rx message thread failed.\n", __func__, port->name);
+        return -1;
+    }
     return 0;
 }

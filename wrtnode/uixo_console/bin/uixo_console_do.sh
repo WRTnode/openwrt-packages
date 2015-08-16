@@ -9,10 +9,12 @@ case $1 in
         ;;
     "-r")
         MESSAGE="[1234:1:0:0:0:0:$2:rmport] 0"
+        /bin/client_console 127.0.0.1 ${MESSAGE}
         ;;
     "-s")
         DATA=$3
-        MESSAGE="[1234:${#DATA}:0:${DATA}:$4:0:$2:hlport] 0"
+        MESSAGE="[1234:${#DATA}:0:${DATA}:$4:0:$2:hlport] $4"
+        /bin/client_console 127.0.0.1 ${MESSAGE}
         ;;
     *)
         echo "Illegal parameters!"

@@ -439,7 +439,7 @@ struct serial_base* base_serial_port_init(serial_init_t* sp)
     }
 
     /* malloc a serial_base port */
-    sb = (struct serial_base*)malloc(1*sizeof(struct serial_base));
+    sb = (struct serial_base*)calloc(1, sizeof(struct serial_base));
     if(NULL==sb) {
         goto BASE_SERIAL_PORT_INIT_MALLOC_PS_ERROR;
     }
