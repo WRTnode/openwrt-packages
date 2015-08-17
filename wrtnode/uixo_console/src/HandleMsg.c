@@ -310,6 +310,7 @@ void* _handle_msg_receive_data_thread(void* arg)
                     if(send(msg->socketfd, rx_data, len, 0) < 0) {
                         printf("%s: send to client error.\n", __func__);
                     }
+                    PR_DEBUG("%s: send %s to client(fd=%d).\n", __func__, rx_data, msg->socketfd);
                 }
                 memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
             }

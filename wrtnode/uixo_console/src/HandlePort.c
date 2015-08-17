@@ -67,7 +67,7 @@ static int handle_port_uixo_port_open(uixo_port_t* port)
 {
 	uixo_err_t ret = UIXO_ERR_OK;
 
-	if(strncmp(port->name, "/dev/tty", 8)==0) {
+	if(strncmp(port->name, "/dev/tty", strlen("/dev/tty"))==0) {
         posix_serial_init_t port_conf;
         struct posix_serial* ps = NULL;
 		memset(&port_conf, 0, sizeof(posix_serial_init_t));
@@ -233,13 +233,12 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
             ret = ps->read(ps, &ch, 1);
             if(0 < ret) {
                 PR_DEBUG("%s: got ch=%c(0x%02x).\n", __func__, ch, ch);
+                *ptr = ch;
+                ptr++;
+                readn++;
                 if(('\n' == ch) || ('\r' == ch)) {
+                    *(ptr-1) = '\n';
                     return readn;
-                }
-                else {
-                    *ptr = ch;
-                    ptr++;
-                    readn++;
                 }
             }
             else {
@@ -256,13 +255,12 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
             ret = ps->read(ps, &ch, 1);
             if(0 < ret) {
                 PR_DEBUG("%s: got ch=%c(0x%02x).\n", __func__, ch, ch);
+                *ptr = ch;
+                ptr++;
+                readn++;
                 if(('\n' == ch) || ('\r' == ch)) {
+                    *(ptr-1) = '\n';
                     return readn;
-                }
-                else {
-                    *ptr = ch;
-                    ptr++;
-                    readn++;
                 }
             }
             else {

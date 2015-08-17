@@ -26,6 +26,7 @@ static int posix_serial_open(struct posix_serial* s)
 {
     int ret = 0;
     if(NULL == s) {
+		printf("open fail1\n");
         ret = -SERIAL_ERR_INPUT_NULL;
         goto POSIX_SERIAL_OPEN_INPUT_ERROR;
     }

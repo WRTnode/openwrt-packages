@@ -2,10 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include<sys/types.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #define UIXO_HEAD_LEN     (5)
 #define MAX_UIXO_MSG_LEN  (4096)
@@ -16,17 +17,29 @@ typedef struct{
 	int times;
 }argument;
 
-void* work(void* arg1){
-	argument *arg;
-	arg = (argument*)arg1;
-	int size;
-	char buff[1024];
-	int cs = (*arg).sfd;
-	//加1，是因为发送出去一条消息会收到一条打印信息
-	int rttimes = (*arg).times + 1;
+#ifdef DEBUG
+#define PR_DBG   printf
+#else
+#define PR_DBG(...)
+#endif
 
-    printf("%s: in thread.\n", __func__);
-	for(;;){
+int client_socket_fd;
+
+void* work(void* arg1){
+	argument *arg = (argument*)arg1;
+	int size;
+	char buff[1024] = {0};
+	int cs = arg->sfd;
+	//加1，是因为发送出去一条消息会收到一条打印信息
+	int rttimes = arg->times;
+    fd_set sreadfd;
+
+    PR_DBG("%s: in thread.\n", __func__);
+	while(rttimes) {
+        memset(buff, 0, sizeof(buff));
+        FD_ZERO(&sreadfd);
+        FD_SET(cs, &sreadfd);
+        select(cs+1, &sreadfd, NULL, NULL, NULL);
 		size = read(cs,buff,sizeof(buff));
 		if(size > 0){
 			rttimes--;
@@ -34,21 +47,23 @@ void* work(void* arg1){
 		if(size == 0){
 			break;
 		}
-		if(buff[0]== '\0')
-			continue;
 
 		buff[size] = '\0';
-		printf("%s\n",buff);
-		if(rttimes == 0){
-			close(cs);
-			return 0;
-		}
+		printf("%s",buff);
 	}
     send(cs, "exit", sizeof("exit"), 0);
 	close(cs);
 	return 0;
 
 }
+
+static void quit_signal_handler(int a)
+{
+    send(client_socket_fd, "exit", sizeof("exit"), 0);
+	close(client_socket_fd);
+    exit(0);
+}
+
 int main(int argc,char *argv[])
 {
 	int cs,cc;
@@ -62,11 +77,16 @@ int main(int argc,char *argv[])
 	pid_t pid;
 	pthread_t tpid;
 	struct sockaddr_in serveraddr;
+
+    signal(SIGINT, quit_signal_handler);
+    signal(SIGTSTP, quit_signal_handler);
+
 	cs = socket(AF_INET,SOCK_STREAM,0);
 	if(cs<0){
 		printf("creat the socket fail!\n");
 		return -1;
 	}
+    client_socket_fd = cs;
 	memset(buff,0,sizeof(buff));
 	memset(&serveraddr,0,sizeof(serveraddr));
 	serveraddr.sin_family=AF_INET;
@@ -75,7 +95,7 @@ int main(int argc,char *argv[])
 	inet_pton(AF_INET,argv[1],&serveraddr.sin_addr);
 	setsockopt(cs,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(int));
 	ret = connect(cs,(struct sockaddr*)&serveraddr,sizeof(struct sockaddr));
-	printf("ret = %d\n",ret);
+	PR_DBG("ret = %d\n",ret);
 	if(ret < 0){
 		printf("connect error\n");
 	}
@@ -84,10 +104,11 @@ int main(int argc,char *argv[])
 #endif
     rttimes = atoi(argv[3]);
     if(0 != rttimes) {
-	    argument arg;
-	    arg.sfd = cs;
-	    arg.times = rttimes;
-	    ret = pthread_create(&tpid, NULL,work,&arg) ;
+	    argument* arg = NULL;
+        arg = (argument*)calloc(1, sizeof(*arg));
+	    arg->sfd = cs;
+	    arg->times = rttimes;
+	    ret = pthread_create(&tpid, NULL,work,arg) ;
 	    if(ret != 0){
 		    printf("pthread_create fail\n");
 		    return -1;
