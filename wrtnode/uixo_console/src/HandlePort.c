@@ -172,7 +172,9 @@ int handle_port_delport(const char* port_name)
             uixo_console_free(tmp_p->name);
             PR_DEBUG("%s: finished delete port = %s.\n", __func__, port_name);
         }
+        PR_DEBUG("%s1.\n", __func__);
         handle_msg_del_msglist(&tmp_p->msghead);
+        PR_DEBUG("%s2.\n", __func__);
         uixo_console_free(tmp_p);
         return 0;
     }
@@ -201,8 +203,15 @@ int handle_port_hlport(uixo_message_t* msg)
                 return -1;
             }
             if(msg->rttimes != 0) {
+                uixo_message_t* msg_bak = NULL;
+                msg_bak = (uixo_message_t*)uixo_console_calloc(1, sizeof(uixo_message_t));
+                if(NULL == msg_bak) {
+                    printf("%s: rttimes>0, but calloc copy message error.\n", __func__);
+                    return -1;
+                }
+                memcpy(msg_bak, msg, sizeof(uixo_message_t));
                 PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
-                list_add_tail(&msg->list, &port->msghead);
+                list_add_tail(&msg_bak->list, &port->msghead);
                 if(handle_msg_receive_data(port) < 0) {
                     printf("%s: port(%s) receive data fail.\n", __func__, port->name);
                     return -1;
@@ -300,5 +309,39 @@ void handle_port_remove_port_list(void)
         }
         handle_msg_del_msglist(&tmp_p->msghead);
         uixo_console_free(tmp_p);
+    }
+}
+
+int handle_port_fun_types(uixo_message_t* msg)
+{
+	/*create a port*/
+	if(strcmp(msg->fn_name, "mkport") == 0) {
+		PR_DEBUG("%s: mkport, name=%s, baudrate = %d\n", __func__, msg->port_name, msg->port_baudrate);
+		if(NULL == handle_port_mkport(msg->port_name, msg->port_baudrate)) {
+			printf("%s: mkport error.\n", __func__);
+            return -1;
+		}
+        return 0;
+    }
+    /* delete a port */
+    else if(strcmp(msg->fn_name, "rmport") == 0) {
+        PR_DEBUG("%s: rmport %s\n", __func__, msg->port_name);
+        if(handle_port_delport(msg->port_name) < 0) {
+            printf("%s: the port does not exist.\n", __func__);
+            return -1;
+        }
+        return 0;
+    }
+    /* handle a port */
+    else if(strcmp(msg->fn_name, "hlport") == 0) {
+        if(handle_port_hlport(msg) < 0) {
+            printf("%s: hlport error.\n", __func__);
+            return -1;
+        }
+        return 0;
+    }
+    else {
+        printf("%s: invalid message fn_name = %s.\n",__func__, msg->fn_name);
+        return -1;
     }
 }

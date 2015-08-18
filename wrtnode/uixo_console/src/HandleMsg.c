@@ -213,10 +213,9 @@ static int handle_msg_format_data(char* dest, const char* src)
                         printf("%s: HEX format error(0x%s).\n", __func__, tmp);
                         return -1;
                     }
-                    sprintf(dest, "%d", val);
+                    *dest++ = (char)val;
                     src += 4;
-                    while('\0' != *++dest)
-                        len++;
+                    len++;
                 }
                 break;
             case '0':
@@ -344,4 +343,175 @@ int handle_msg_receive_data(uixo_port_t* port)
         return -1;
     }
     return 0;
+}
+
+static int _find_string_between_two_char(const char* src, const char start, const char end, char* dest)
+{
+    char* sptr = NULL;
+    char* eptr = NULL;
+    int len = 0;
+
+    if((NULL == src) || (NULL == dest)) {
+        printf("%s: input data or dest buffer is NULL\n", __func__);
+        return -1;
+    }
+    if(strlen(src) > MAX_UIXO_MSG_LEN) {
+        printf("%s: input data is too long, MAX is %d\n", __func__, MAX_UIXO_MSG_LEN);
+        return -1;
+    }
+
+    sptr = strchr(src, start);
+    if(NULL == sptr) {
+        printf("%s: no %c in %s\n", __func__, start, src);
+        return -1;
+    }
+    eptr = ++sptr;
+
+    while((*eptr != end) && (*eptr != '\0')) {
+        len++;
+        eptr++;
+    }
+    if(*eptr == '\0') {
+        printf("%s: no %c in %s\n", __func__, end, src);
+        return -1;
+    }
+    else {
+        if(0 != len) {
+            strncpy(dest, sptr, len);
+            dest[len] = '\0';
+            return len;
+        }
+        else {
+            return -1;
+        }
+    }
+}
+
+static int handle_msg_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg)
+{
+    int ret = 0;
+    char* valid_data = NULL;
+    char* ptr = NULL;
+
+    if((0 == len) || (NULL == data)) {
+        return -1;
+    }
+
+    valid_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*valid_data));
+    if(NULL == valid_data) {
+        printf("%s: calloc error\n", __func__);
+        return -UIXO_ERR_NULL;
+    }
+
+	/* onemsg : [time:len:cmd:data:rttimes:baudrate:/dev/device_name:fnname] */
+    ret = _find_string_between_two_char(data, '[', ']', valid_data);
+    if(ret < 0) {
+        goto LOAD_CMD_DATA_FORMAT_ERROR;
+    }
+    PR_DEBUG("%s: got valid data = %s, len = %d.\n", __func__, valid_data, ret);
+
+    {
+        char* word = NULL;
+        char* sep = ":";
+        ret = 0;
+
+        for(word = strtok(valid_data, sep);
+            word;
+            word = strtok(NULL, sep)) {
+            PR_DEBUG("%s: strtok word = %s\n", __func__, word);
+            switch(ret) {
+            case 0: ret += sscanf(word, "%ld", &msg->time); break;
+            case 1: ret += sscanf(word, "%d", &msg->len); break;
+            case 2: ret += sscanf(word, "%c", &msg->cmd); break;
+            case 3: ret += sscanf(word, "%s", msg->data); break;
+            case 4: ret += sscanf(word, "%d", &msg->rttimes); break;
+            case 5: ret += sscanf(word, "%d", &msg->port_baudrate); break;
+            case 6: ret += sscanf(word, "%s", msg->port_name); break;
+            case 7: ret += sscanf(word, "%s", msg->fn_name); break;
+            default: break;
+            }
+        }
+    }
+    if(ret < 8) {
+        goto LOAD_CMD_DATA_FORMAT_ERROR;
+    }
+    PR_DEBUG("got a valid message.\ntime=%ld,len=%d,cmd=%c,data=%s,rttimes=%d,baudrate=%d,device=%s,fn=%s\n",
+             msg->time, msg->len, msg->cmd, msg->data, msg->rttimes, msg->port_baudrate,
+             msg->port_name, msg->fn_name);
+
+    uixo_console_free(valid_data);
+    return 0;
+
+LOAD_CMD_DATA_FORMAT_ERROR:
+    printf("%s: message format error. message = %s.\n", __func__, valid_data);
+    printf("time=%ld,len=%d,cmd=%c,data=%s,rttimes=%d,baudrate=%d,device=%s,fn=%s\n",
+             msg->time, msg->len, msg->cmd, msg->data, msg->rttimes, msg->port_baudrate,
+             msg->port_name, msg->fn_name);
+    uixo_console_free(valid_data);
+    return -UIXO_CONSOLE_ERR_INPUT_NULL;
+}
+
+int handle_msg_resolve_msg(const int fd)
+{
+    uixo_message_t* msg = NULL;
+    char head[UIXO_HEAD_LEN] = {0};
+    ssize_t readn = 0;
+    int ret = 0;
+
+    PR_DEBUG("%s: client(fd = %d) send data in.\n", __func__, fd);
+    msg = (uixo_message_t*)uixo_console_calloc(1, sizeof(*msg));
+    PR_DEBUG("%s: msg addr = 0x%08x\n", __func__, (int)msg);
+    if(NULL == msg) {
+        printf("%s: calloc message error.\n", __func__);
+        return -1;
+    }
+
+    msg->socketfd = fd;
+    readn = read(fd, head, UIXO_HEAD_LEN);
+    PR_DEBUG("%s: got message head = %s, len = %ld.\n", __func__, head, readn);
+    if(readn != UIXO_HEAD_LEN) {
+        printf("%s: read client head error. return = %ld", __func__, readn);
+        ret = -1;
+        goto HANDLE_MSG_MSG_FREE_OUT;
+    }
+
+    if(0 == strcmp(head, "exit")) {
+        printf("%s: read client exit message.\n", __func__);
+        ret = UIXO_MSG_CLOSE_PORT;
+        goto HANDLE_MSG_MSG_FREE_OUT;
+    }
+    else {
+        char* read_buf = NULL;
+        int buf_len = atoi(head);
+        read_buf = (char*)uixo_console_calloc(buf_len+1, sizeof(*read_buf));
+        if(NULL == read_buf) {
+            printf("%s: calloc read buffer error.\n", __func__);
+            ret = -1;
+            goto HANDLE_MSG_MSG_FREE_OUT;
+        }
+        readn = read(fd, read_buf, buf_len);
+        if((readn != buf_len)||(readn == -1)) {
+            printf("%s: read client fd error. return = %ld\n", __func__, readn);
+            ret = -1;
+            goto HANDLE_MSG_READBUF_FREE_OUT;
+        }
+        PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
+
+        if(handle_msg_parse_msg(read_buf, readn, msg) != UIXO_ERR_OK) {
+            printf("%s: uixo message parse err.\n", __func__);
+            ret = -1;
+            goto HANDLE_MSG_READBUF_FREE_OUT;
+        }
+        if(handle_port_fun_types(msg) < 0) {
+            printf("%s: parse message error.\n", __func__);
+            ret = -1;
+            goto HANDLE_MSG_READBUF_FREE_OUT;
+        }
+HANDLE_MSG_READBUF_FREE_OUT:
+        uixo_console_free(read_buf);
+    }
+
+HANDLE_MSG_MSG_FREE_OUT:
+    uixo_console_free(msg);
+    return ret;
 }

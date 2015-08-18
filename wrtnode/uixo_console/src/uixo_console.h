@@ -26,12 +26,14 @@
 #define DugPrintg  1
 #if DugPrintg
 #define PR_DEBUG(fmt,args...) printf(fmt,##args)
+extern long calloc_count;
 #else
 #define PR_DEBUG(fmt,args...) /*do nothing */
 #endif
 
 #define UIXO_MSG_ALWAYS_WAIT_MSG   (-1)
 #define UIXO_MSG_DELET_MSG         (-2)
+#define UIXO_MSG_CLOSE_PORT        (-3)
 
 typedef enum {
 	UIXO_ERR_OK = 0,
@@ -114,8 +116,8 @@ static inline void* uixo_console_calloc(size_t count, size_t size)
         printf("%s: calloc error.\n", __func__);
         return NULL;
     }
-    PR_DEBUG("%s: calloc mem addr=0x%08x, len=%d.\n", __func__, (int)ptr, count*size);
     calloc_count++;
+    PR_DEBUG("%s: calloc mem addr=0x%08x, len=%d calloc_count=%d.\n", __func__, (int)ptr, count*size, calloc_count);
     return ptr;
 }
 
@@ -123,24 +125,24 @@ static inline void uixo_console_free(void* ptr)
 {
     if(NULL != ptr) {
         free(ptr);
-        PR_DEBUG("%s: free mem addr=0x%08x.\n", __func__, (int)ptr);
         calloc_count--;
+        PR_DEBUG("%s: free mem addr=0x%08x, calloc_count=%d.\n", __func__, (int)ptr, calloc_count);
     }
     else {
         printf("%s: free error.\n", __func__);
     }
 }
 
-int uixo_console_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg);
 uixo_port_t* handle_port_mkport(const char* port_name, const int baudrate);
 int handle_port_delport(const char* port_name);
 int handle_port_hlport(uixo_message_t* msg);
 void handle_port_remove_port_list(void);
 int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len);
-int FunTypes(uixo_message_t* msg);
+int handle_port_fun_types(uixo_message_t* msg);
 int handle_msg_del_msg(uixo_message_t* msg);
 int handle_msg_del_msglist(struct list_head* msg_head);
 int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg);
 int handle_msg_receive_data(uixo_port_t* port);
+int handle_msg_resolve_msg(const int fd);
 
 #endif

@@ -1,6 +1,6 @@
 PROGS     = uixo_console
 
-OBJS = main.o uixo_console.o serial.o serial_posix.o FunTypes.o HandlePort.o HandleMsg.o spi.o spi_mt7688.o
+OBJS = main.o serial.o serial_posix.o HandlePort.o HandleMsg.o spi.o spi_mt7688.o
 LDFLAGS += -lpthread
 all: $(PROGS)
 $(PROGS): $(OBJS)

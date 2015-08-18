@@ -19,7 +19,6 @@ Data        :2015.08.13
 #include <sys/time.h>
 #include <sys/types.h>
 #include <pthread.h>
-#include <signal.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
@@ -29,8 +28,11 @@ Data        :2015.08.13
 #define MAX(a,b)  (((a) > (b))? (a): (b))
 #define MIN(x,y)  (((x) < (y))? (x): (y))
 #define PORT                         (8000)
-#define RESOLVE_MESSAGE_CLOSE_PORT   (-10)
 #define BACKLOG                      (100)
+
+#if DugPrintg
+long calloc_count = 0;
+#endif
 
 struct uixo_client {
     struct list_head list;
@@ -50,53 +52,6 @@ static int connct_num;
 static int usage(const char* name)
 {
     return -1;
-}
-
-static int uixo_console_resolve_msg(const int sc, uixo_message_t* msg)
-{
-    char head[UIXO_HEAD_LEN] = {0};
-    ssize_t readn = 0;
-
-    if(NULL == msg) {
-        return -1;
-    }
-
-    msg->socketfd = sc;
-    readn = read(sc, head, UIXO_HEAD_LEN);
-    PR_DEBUG("%s: got message head = %s, len = %ld.\n", __func__, head, readn);
-    if(readn != UIXO_HEAD_LEN) {
-        printf("%s: read client head error. return = %ld", __func__, readn);
-        return -1;
-    }
-
-    if(0 == strcmp(head, "exit")) {
-        printf("%s: read client exit message.\n", __func__);
-        return RESOLVE_MESSAGE_CLOSE_PORT;
-    }
-    else {
-        char* read_buf = NULL;
-        int buf_len = atoi(head);
-        read_buf = (char*)uixo_console_calloc(buf_len+1, sizeof(*read_buf));
-        if(NULL == read_buf) {
-            printf("%s: calloc read buffer error.\n", __func__);
-            return -1;
-        }
-        readn = read(sc, read_buf, buf_len);
-        if((readn != buf_len)||(readn == -1)) {
-            printf("%s: read client fd error. return = %ld\n", __func__, readn);
-            uixo_console_free(read_buf);
-            return -1;
-        }
-        PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
-
-        if(uixo_console_parse_msg(read_buf, readn, msg) != UIXO_ERR_OK) {
-            printf("%s: uixo message parse err.\n", __func__);
-            uixo_console_free(read_buf);
-            return -1;
-        }
-        uixo_console_free(read_buf);
-        return 0;
-    }
 }
 
 static void uixo_console_port_close(){
@@ -130,12 +85,6 @@ static int uixo_console_create_socket(void)
     PR_DEBUG("%s:%d bind succes.\n",__func__, PORT);
     listen(ss, BACKLOG);
     return ss;
-}
-
-static void uixo_console_save_leave (int signo){
-        signal(SIGTERM,SIG_IGN);
-        signal(SIGINT,SIG_IGN);
-        close(socketfd);
 }
 
 static int uixo_console_select_fds(fd_set* pfds)
@@ -173,29 +122,15 @@ static int uixo_console_client_remove(const int fd)
     return -1;
 }
 
-static int uixo_console_handle_client(int fd)
+static int uixo_console_handle_client(const int fd)
 {
     int ret = 0;
-    uixo_message_t* msg = NULL;
-
-    PR_DEBUG("%s: client(fd = %d) send data in.\n", __func__, fd);
-    msg = (uixo_message_t*)uixo_console_calloc(1, sizeof(*msg));
-    PR_DEBUG("%s: msg addr = 0x%08x\n", __func__, (int)msg);
-    if(NULL == msg) {
-        printf("%s: calloc message error.\n", __func__);
-        return -1;
-    }
-
-    ret = uixo_console_resolve_msg(fd, msg);
+    ret = handle_msg_resolve_msg(fd);
     if(ret < 0) {
-        if(RESOLVE_MESSAGE_CLOSE_PORT == ret) {
+        if(UIXO_MSG_CLOSE_PORT == ret) {
             return uixo_console_client_remove(fd);
         }
         printf("%s: read invalid message.\n", __func__);
-        return -1;
-    }
-    if(FunTypes(msg) < 0) {
-        printf("%s: parse message error.\n", __func__);
         return -1;
     }
     return 0;
@@ -238,9 +173,6 @@ int main(int argc, char* argv[])
         printf("%s: Bcreate socket failed.\n", __func__);
         return -1;
     }
-
-    signal(SIGHUP, SIG_IGN);
-    signal(SIGTERM, uixo_console_save_leave);
 
     while(1) {
         fd_set sreadfds;
