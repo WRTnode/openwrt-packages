@@ -242,11 +242,13 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
             ret = ps->read(ps, &ch, 1);
             if(0 < ret) {
                 PR_DEBUG("%s: got ch=%c(0x%02x).\n", __func__, ch, ch);
+                if('\r' == ch) {
+                    continue;
+                }
                 *ptr = ch;
                 ptr++;
                 readn++;
-                if(('\n' == ch) || ('\r' == ch)) {
-                    *(ptr-1) = '\n';
+                if('\n' == ch) {
                     return readn;
                 }
             }
@@ -264,11 +266,13 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
             ret = ps->read(ps, &ch, 1);
             if(0 < ret) {
                 PR_DEBUG("%s: got ch=%c(0x%02x).\n", __func__, ch, ch);
+                if('\r' == ch) {
+                    continue;
+                }
                 *ptr = ch;
                 ptr++;
                 readn++;
-                if(('\n' == ch) || ('\r' == ch)) {
-                    *(ptr-1) = '\n';
+                if('\n' == ch) {
                     return readn;
                 }
             }
