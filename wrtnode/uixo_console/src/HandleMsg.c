@@ -183,8 +183,6 @@ void* _handle_msg_receive_data_thread(void* arg)
     }
 
     PR_DEBUG("%s: port(%s) message list is empty.\n", __func__, port->name);
-    close(msg->socketfd);
-    PR_DEBUG("%s: client(%d) closed.\n", __func__, msg->socketfd);
     port->rx_msg_thread = 0;
 
     return 0;
