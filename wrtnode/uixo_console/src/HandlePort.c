@@ -212,9 +212,11 @@ int handle_port_hlport(uixo_message_t* msg)
                 memcpy(msg_bak, msg, sizeof(uixo_message_t));
                 PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
                 list_add_tail(&msg_bak->list, &port->msghead);
-                if(handle_msg_receive_data(port) < 0) {
-                    printf("%s: port(%s) receive data fail.\n", __func__, port->name);
-                    return -1;
+                if(0 == port->rx_msg_thread) {
+                    if(handle_msg_receive_data(port) < 0) {
+                        printf("%s: port(%s) receive data fail.\n", __func__, port->name);
+                        return -1;
+                    }
                 }
             }
             return 0;
