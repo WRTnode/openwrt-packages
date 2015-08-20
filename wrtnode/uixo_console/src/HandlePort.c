@@ -226,7 +226,7 @@ int handle_port_hlport(uixo_message_t* msg)
                     PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
                     pthread_mutex_lock(&port->port_mutex);
                     list_add_tail(&msg_bak->list, &port->msghead);
-                    if(0 == port->rx_msg_thread) {
+                    if(!port->rx_thread_is_run) {
                         pthread_mutex_unlock(&port->port_mutex);
                         if(0 != port->rx_msg_thread) {
                             pthread_join(port->rx_msg_thread, NULL);
