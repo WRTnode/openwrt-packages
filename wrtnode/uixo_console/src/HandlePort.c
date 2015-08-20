@@ -177,6 +177,7 @@ int handle_port_delport(const char* port_name)
         }
         PR_DEBUG("%s1.\n", __func__);
         pthread_mutex_lock(&tmp_p->port_mutex);
+        PR_DEBUG("%s: take port lock.\n", __func__);
         if((0 != tmp_p->rx_msg_thread) || (0 == pthread_kill(tmp_p->rx_msg_thread, 0))) {
             pthread_cancel(tmp_p->rx_msg_thread);
             PR_DEBUG("%s: send cancel to rx thread(%d)\n", __func__, (int)tmp_p->rx_msg_thread);
@@ -186,6 +187,7 @@ int handle_port_delport(const char* port_name)
         handle_msg_del_msglist(&tmp_p->msghead);
         PR_DEBUG("%s2.\n", __func__);
         pthread_mutex_unlock(&tmp_p->port_mutex);
+        PR_DEBUG("%s: release port lock.\n", __func__);
         pthread_mutex_destroy(&tmp_p->port_mutex);
         uixo_console_free(tmp_p);
         return 0;
@@ -225,9 +227,11 @@ int handle_port_hlport(uixo_message_t* msg)
                     memcpy(msg_bak, msg, sizeof(uixo_message_t));
                     PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
                     pthread_mutex_lock(&port->port_mutex);
+                    PR_DEBUG("%s: take port lock.\n", __func__);
                     list_add_tail(&msg_bak->list, &port->msghead);
                     if(!port->rx_thread_is_run) {
                         pthread_mutex_unlock(&port->port_mutex);
+                        PR_DEBUG("%s: release port lock.\n", __func__);
                         if(0 != port->rx_msg_thread) {
                             pthread_join(port->rx_msg_thread, NULL);
                             PR_DEBUG("%s: thread(%d) exit.\n", __func__, (int)port->rx_msg_thread);
@@ -240,6 +244,7 @@ int handle_port_hlport(uixo_message_t* msg)
                                  __func__, msg_bak->socketfd, port->name);
                     }
                     pthread_mutex_unlock(&port->port_mutex);
+                    PR_DEBUG("%s: release port lock.\n", __func__);
                 }
                 return 0;
             }

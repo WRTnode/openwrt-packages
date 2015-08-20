@@ -150,12 +150,13 @@ static void* _handle_msg_receive_data_thread(void* arg)
     uixo_message_t* msg = NULL;
     PR_DEBUG("%s: got port(%s) in receive thread.\n", __func__, port->name);
 
-    pthread_mutex_lock(&port->port_mutex);
     while(!(pthread_mutex_lock(&port->port_mutex) ||
             list_empty(&port->msghead))) {
+        PR_DEBUG("%s: take port lock.\n", __func__);
         msg = list_first_entry(&port->msghead, typeof(*msg), list);
         list_del(&msg->list);
         pthread_mutex_unlock(&port->port_mutex);
+        PR_DEBUG("%s: release port lock.\n", __func__);
         char* rx_data = NULL;
         rx_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*rx_data));
 
@@ -197,6 +198,7 @@ static void* _handle_msg_receive_data_thread(void* arg)
     if(list_empty(&port->msghead)) {
         port->rx_thread_is_run = 0;
         pthread_mutex_unlock(&port->port_mutex);
+        PR_DEBUG("%s: release port lock.\n", __func__);
         PR_DEBUG("%s: WARNING: port(%s) message list is empty.\n", __func__, port->name);
     }
     else {
@@ -212,8 +214,10 @@ int handle_msg_receive_data(uixo_port_t* port)
         return -1;
     }
     pthread_mutex_lock(&port->port_mutex);
+    PR_DEBUG("%s: take port lock.\n", __func__);
     port->rx_thread_is_run = 1;
     pthread_mutex_unlock(&port->port_mutex);
+    PR_DEBUG("%s: release port lock.\n", __func__);
     PR_DEBUG("%s: thread(%d) running.\n", __func__, (int)port->rx_msg_thread);
     return 0;
 }
