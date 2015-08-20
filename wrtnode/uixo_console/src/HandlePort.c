@@ -189,8 +189,8 @@ int handle_port_hlport(uixo_message_t* msg)
     uixo_port_t* port = NULL;
     list_for_each_entry(port, &uixo_ports_head, list) {
         if(strcmp(port->name, msg->port_name) == 0) {
-        PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
-            if(msg->rttimes == UIXO_MSG_DELET_MSG) {
+            PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
+            if(msg->rttimes <= UIXO_MSG_DELET_MSG) {
                 PR_DEBUG("%s: del msg\n", __func__);
                 if(handle_msg_del_msg(msg) < 0) {
                     printf("%s: port(%s) delet message error\n", __func__, port->name);
@@ -198,28 +198,30 @@ int handle_port_hlport(uixo_message_t* msg)
                 }
                 return 0;
             }
-            if(handle_msg_transmit_data(port, msg) < 0) {
-                printf("%s: port(%s) transmit data fail.\n", __func__, port->name);
-                return -1;
-            }
-            if(msg->rttimes != 0) {
-                uixo_message_t* msg_bak = NULL;
-                msg_bak = (uixo_message_t*)uixo_console_calloc(1, sizeof(uixo_message_t));
-                if(NULL == msg_bak) {
-                    printf("%s: rttimes>0, but calloc copy message error.\n", __func__);
+            else {
+                if(handle_msg_transmit_data(port, msg) < 0) {
+                    printf("%s: port(%s) transmit data fail.\n", __func__, port->name);
                     return -1;
                 }
-                memcpy(msg_bak, msg, sizeof(uixo_message_t));
-                PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
-                list_add_tail(&msg_bak->list, &port->msghead);
-                if(0 == port->rx_msg_thread) {
-                    if(handle_msg_receive_data(port) < 0) {
-                        printf("%s: port(%s) receive data fail.\n", __func__, port->name);
+                if(msg->rttimes != 0) {
+                    uixo_message_t* msg_bak = NULL;
+                    msg_bak = (uixo_message_t*)uixo_console_calloc(1, sizeof(uixo_message_t));
+                    if(NULL == msg_bak) {
+                        printf("%s: rttimes>0, but calloc copy message error.\n", __func__);
                         return -1;
                     }
+                    memcpy(msg_bak, msg, sizeof(uixo_message_t));
+                    PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
+                    list_add_tail(&msg_bak->list, &port->msghead);
+                    if(0 == port->rx_msg_thread) {
+                        if(handle_msg_receive_data(port) < 0) {
+                            printf("%s: port(%s) receive data fail.\n", __func__, port->name);
+                            return -1;
+                        }
+                    }
                 }
+                return 0;
             }
-            return 0;
         }
     }
     printf("%s: the port(%s) does not exist\n", __func__, msg->port_name);

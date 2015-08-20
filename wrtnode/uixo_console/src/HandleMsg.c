@@ -20,7 +20,7 @@ Data        :2015.06.03
 #include "spi_mt7688.h"
 #include "uixo_console.h"
 
-static int _handle_msg_delmsg(uixo_message_t* msg)
+static int handle_msg_free_msg(uixo_message_t* msg)
 {
     uixo_console_free(msg);
     return 0;
@@ -35,9 +35,10 @@ int handle_msg_del_msg(uixo_message_t* msg)
 int handle_msg_del_msglist(struct list_head* msg_head)
 {
 	uixo_message_t* msg_del = NULL;
-    list_for_each_entry(msg_del, msg_head, list) {
+    uixo_message_t* msg_del_n = NULL;
+    list_for_each_entry_safe(msg_del, msg_del_n, msg_head, list) {
         list_del(&msg_del->list);
-        _handle_msg_delmsg(msg_del);
+        handle_msg_free_msg(msg_del);
     }
 	return 0;
 }
@@ -143,13 +144,14 @@ int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
     return 0;
 }
 
-void* _handle_msg_receive_data_thread(void* arg)
+static void* _handle_msg_receive_data_thread(void* arg)
 {
     uixo_port_t* port = (uixo_port_t*)arg;
     uixo_message_t* msg = NULL;
+    uixo_message_t* msg_n = NULL;
     PR_DEBUG("%s: got port(%s) in receive thread.\n", __func__, port->name);
 
-    list_for_each_entry(msg, &port->msghead, list) {
+    list_for_each_entry_safe(msg, msg_n, &port->msghead, list) {
         char* rx_data = NULL;
         rx_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*rx_data));
         PR_DEBUG("%s: got a message, rttimes=%d\n", __func__, msg->rttimes);
@@ -167,7 +169,7 @@ void* _handle_msg_receive_data_thread(void* arg)
                 memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
             }
         }
-        else {
+        else if (0 < msg->rttimes) {
             while(msg->rttimes--) {
                 int len = 0;
                 len = handle_port_read_line(port, rx_data, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
@@ -179,10 +181,18 @@ void* _handle_msg_receive_data_thread(void* arg)
                 }
                 memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
             }
+            list_del(&msg->list);
+            handle_msg_free_msg(msg);
+        }
+        else {
+            printf("%s: WARNING: got rttimes=0 in rx thread. port(%s), client(%d)\n",
+                   __func__, port->name, msg->socketfd);
+            list_del(&msg->list);
+            handle_msg_free_msg(msg);
         }
     }
 
-    PR_DEBUG("%s: port(%s) message list is empty.\n", __func__, port->name);
+    PR_DEBUG("%s: WARNING: port(%s) message list is empty.\n", __func__, port->name);
     port->rx_msg_thread = 0;
 
     return 0;
@@ -312,7 +322,6 @@ int handle_msg_resolve_msg(const int fd)
 
     PR_DEBUG("%s: client(fd = %d) send data in.\n", __func__, fd);
     msg = (uixo_message_t*)uixo_console_calloc(1, sizeof(*msg));
-    PR_DEBUG("%s: msg addr = 0x%08x\n", __func__, (int)msg);
     if(NULL == msg) {
         printf("%s: calloc message error.\n", __func__);
         return -1;
