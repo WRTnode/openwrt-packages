@@ -34,7 +34,7 @@ extern long calloc_count;
 
 #define UIXO_MSG_ALWAYS_WAIT_MSG   (-1)
 #define UIXO_MSG_DELET_MSG         (-2)
-#define UIXO_MSG_CLOSE_PORT        (-3)
+#define UIXO_MSG_CLIENT_EXIT_MSG   (-3)
 
 typedef enum {
 	UIXO_ERR_OK = 0,

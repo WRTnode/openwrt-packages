@@ -148,11 +148,12 @@ static void* _handle_msg_receive_data_thread(void* arg)
 {
     uixo_port_t* port = (uixo_port_t*)arg;
     uixo_message_t* msg = NULL;
-    uixo_message_t* msg_n = NULL;
     PR_DEBUG("%s: got port(%s) in receive thread.\n", __func__, port->name);
 
     pthread_mutex_lock(&port->port_mutex);
-    list_for_each_entry_safe(msg, msg_n, &port->msghead, list) {
+    while(!(pthread_mutex_lock(&port->port_mutex) ||
+            list_empty(&port->msghead))) {
+        msg = list_first_entry(&port->msghead, typeof(*msg), list);
         list_del(&msg->list);
         pthread_mutex_unlock(&port->port_mutex);
         char* rx_data = NULL;
@@ -192,11 +193,15 @@ static void* _handle_msg_receive_data_thread(void* arg)
                    __func__, port->name, msg->socketfd);
             handle_msg_free_msg(msg);
         }
-        pthread_mutex_lock(&port->port_mutex);
     }
-    port->rx_thread_is_run = 0;
-    pthread_mutex_unlock(&port->port_mutex);
-    PR_DEBUG("%s: WARNING: port(%s) message list is empty.\n", __func__, port->name);
+    if(list_empty(&port->msghead)) {
+        port->rx_thread_is_run = 0;
+        pthread_mutex_unlock(&port->port_mutex);
+        PR_DEBUG("%s: WARNING: port(%s) message list is empty.\n", __func__, port->name);
+    }
+    else {
+        printf("%s: take port(%s) lock error.\n", __func__, port->name);
+    }
     return 0;
 }
 
@@ -344,7 +349,7 @@ int handle_msg_resolve_msg(const int fd)
 
     if(0 == strcmp(head, "exit")) {
         printf("%s: read client exit message.\n", __func__);
-        ret = UIXO_MSG_CLOSE_PORT;
+        ret = UIXO_MSG_CLIENT_EXIT_MSG;
         goto HANDLE_MSG_MSG_FREE_OUT;
     }
     else {

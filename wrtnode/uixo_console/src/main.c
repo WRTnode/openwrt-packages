@@ -127,7 +127,7 @@ static int uixo_console_handle_client(const int fd)
     int ret = 0;
     ret = handle_msg_resolve_msg(fd);
     if(ret < 0) {
-        if(UIXO_MSG_CLOSE_PORT == ret) {
+        if(UIXO_MSG_CLIENT_EXIT_MSG == ret) {
             return uixo_console_client_remove(fd);
         }
         printf("%s: read invalid message.\n", __func__);
