@@ -151,10 +151,14 @@ static void* _handle_msg_receive_data_thread(void* arg)
     uixo_message_t* msg_n = NULL;
     PR_DEBUG("%s: got port(%s) in receive thread.\n", __func__, port->name);
 
+    pthread_mutex_lock(&port->port_mutex);
     list_for_each_entry_safe(msg, msg_n, &port->msghead, list) {
+        list_del(&msg->list);
+        pthread_mutex_unlock(&port->port_mutex);
         char* rx_data = NULL;
         rx_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*rx_data));
-        PR_DEBUG("%s: got a message, rttimes=%d\n", __func__, msg->rttimes);
+
+        PR_DEBUG("%s: got a message from list, rttimes=%d\n", __func__, msg->rttimes);
         if(UIXO_MSG_ALWAYS_WAIT_MSG == msg->rttimes) {
             while(1) {
                 int len = 0;
@@ -181,20 +185,18 @@ static void* _handle_msg_receive_data_thread(void* arg)
                 }
                 memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
             }
-            list_del(&msg->list);
             handle_msg_free_msg(msg);
         }
         else {
             printf("%s: WARNING: got rttimes=0 in rx thread. port(%s), client(%d)\n",
                    __func__, port->name, msg->socketfd);
-            list_del(&msg->list);
             handle_msg_free_msg(msg);
         }
+        pthread_mutex_lock(&port->port_mutex);
     }
-
+    port->rx_thread_is_run = 0;
+    pthread_mutex_unlock(&port->port_mutex);
     PR_DEBUG("%s: WARNING: port(%s) message list is empty.\n", __func__, port->name);
-    port->rx_msg_thread = 0;
-
     return 0;
 }
 
@@ -204,6 +206,10 @@ int handle_msg_receive_data(uixo_port_t* port)
         printf("%s: create port(%s) rx message thread failed.\n", __func__, port->name);
         return -1;
     }
+    pthread_mutex_lock(&port->port_mutex);
+    port->rx_thread_is_run = 1;
+    pthread_mutex_unlock(&port->port_mutex);
+    PR_DEBUG("%s: thread(%d) running.\n", __func__, (int)port->rx_msg_thread);
     return 0;
 }
 

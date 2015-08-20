@@ -13,6 +13,7 @@
 */
 #include <unistd.h>
 #include <sys/types.h>
+#include <pthread.h>
 #include "list.h"
 
 /*
@@ -74,6 +75,8 @@ typedef struct {
 	struct list_head list;
 	struct list_head msghead;
     pthread_t rx_msg_thread;
+    int rx_thread_is_run;
+    pthread_mutex_t port_mutex;
 
     /* uixo message head */
     char* rx_head;

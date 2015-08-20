@@ -12,6 +12,8 @@ Data        :2015.06.03
 #include <string.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
 
 #include "serial.h"
 #include "serial_posix.h"
@@ -132,6 +134,7 @@ uixo_port_t* handle_port_mkport(const char* port_name, const int baudrate)
     }
     handle_port_uixo_default_set(port, port_name, baudrate);
     INIT_LIST_HEAD(&port->msghead);
+    pthread_mutex_init(&port->port_mutex, NULL);
     if(handle_port_uixo_port_open(port) < 0) {
         printf("%s: open port error\n", __func__);
         return NULL;
@@ -173,8 +176,17 @@ int handle_port_delport(const char* port_name)
             PR_DEBUG("%s: finished delete port = %s.\n", __func__, port_name);
         }
         PR_DEBUG("%s1.\n", __func__);
+        pthread_mutex_lock(&tmp_p->port_mutex);
+        if((0 != tmp_p->rx_msg_thread) || (0 == pthread_kill(tmp_p->rx_msg_thread, 0))) {
+            pthread_cancel(tmp_p->rx_msg_thread);
+            PR_DEBUG("%s: send cancel to rx thread(%d)\n", __func__, (int)tmp_p->rx_msg_thread);
+            pthread_join(tmp_p->rx_msg_thread, NULL);
+            PR_DEBUG("%s: rx thread(%d) exited.\n", __func__, (int)tmp_p->rx_msg_thread);
+        }
         handle_msg_del_msglist(&tmp_p->msghead);
         PR_DEBUG("%s2.\n", __func__);
+        pthread_mutex_unlock(&tmp_p->port_mutex);
+        pthread_mutex_destroy(&tmp_p->port_mutex);
         uixo_console_free(tmp_p);
         return 0;
     }
@@ -212,13 +224,22 @@ int handle_port_hlport(uixo_message_t* msg)
                     }
                     memcpy(msg_bak, msg, sizeof(uixo_message_t));
                     PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
+                    pthread_mutex_lock(&port->port_mutex);
                     list_add_tail(&msg_bak->list, &port->msghead);
                     if(0 == port->rx_msg_thread) {
+                        pthread_mutex_unlock(&port->port_mutex);
+                        if(0 != port->rx_msg_thread) {
+                            pthread_join(port->rx_msg_thread, NULL);
+                            PR_DEBUG("%s: thread(%d) exit.\n", __func__, (int)port->rx_msg_thread);
+                        }
                         if(handle_msg_receive_data(port) < 0) {
                             printf("%s: port(%s) receive data fail.\n", __func__, port->name);
                             return -1;
                         }
+                        PR_DEBUG("%s: client(%d) open a rx thread for port(%s).\n",
+                                 __func__, msg_bak->socketfd, port->name);
                     }
+                    pthread_mutex_unlock(&port->port_mutex);
                 }
                 return 0;
             }
