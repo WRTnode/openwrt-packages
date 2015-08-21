@@ -243,8 +243,10 @@ int handle_port_hlport(uixo_message_t* msg)
                         PR_DEBUG("%s: client(%d) open a rx thread for port(%s).\n",
                                  __func__, msg_bak->socketfd, port->name);
                     }
-                    pthread_mutex_unlock(&port->port_mutex);
-                    PR_DEBUG("%s: release port lock.\n", __func__);
+                    else {
+                        pthread_mutex_unlock(&port->port_mutex);
+                        PR_DEBUG("%s: release port lock.\n", __func__);
+                    }
                 }
                 return 0;
             }

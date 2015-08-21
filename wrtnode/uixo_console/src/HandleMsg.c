@@ -148,6 +148,13 @@ static void* _handle_msg_receive_data_thread(void* arg)
 {
     uixo_port_t* port = (uixo_port_t*)arg;
     uixo_message_t* msg = NULL;
+
+    pthread_mutex_lock(&port->port_mutex);
+    PR_DEBUG("%s: take port lock.\n", __func__);
+    port->rx_thread_is_run = 1;
+    pthread_mutex_unlock(&port->port_mutex);
+    PR_DEBUG("%s: release port lock.\n", __func__);
+    PR_DEBUG("%s: thread(%d) running.\n", __func__, (int)port->rx_msg_thread);
     PR_DEBUG("%s: got port(%s) in receive thread.\n", __func__, port->name);
 
     while(!(pthread_mutex_lock(&port->port_mutex) ||
@@ -213,12 +220,6 @@ int handle_msg_receive_data(uixo_port_t* port)
         printf("%s: create port(%s) rx message thread failed.\n", __func__, port->name);
         return -1;
     }
-    pthread_mutex_lock(&port->port_mutex);
-    PR_DEBUG("%s: take port lock.\n", __func__);
-    port->rx_thread_is_run = 1;
-    pthread_mutex_unlock(&port->port_mutex);
-    PR_DEBUG("%s: release port lock.\n", __func__);
-    PR_DEBUG("%s: thread(%d) running.\n", __func__, (int)port->rx_msg_thread);
     return 0;
 }
 
