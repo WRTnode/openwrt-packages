@@ -120,7 +120,7 @@ static inline void* uixo_console_calloc(size_t count, size_t size)
         return NULL;
     }
     calloc_count++;
-    //PR_DEBUG("%s: calloc mem addr=0x%08x, len=%d calloc_count=%d.\n", __func__, (int)ptr, count*size, calloc_count);
+    PR_DEBUG("%s: calloc mem addr=0x%08x, len=%d calloc_count=%d.\n", __func__, (int)ptr, count*size, calloc_count);
     return ptr;
 }
 
@@ -129,7 +129,7 @@ static inline void uixo_console_free(void* ptr)
     if(NULL != ptr) {
         free(ptr);
         calloc_count--;
-        //PR_DEBUG("%s: free mem addr=0x%08x, calloc_count=%d.\n", __func__, (int)ptr, calloc_count);
+        PR_DEBUG("%s: free mem addr=0x%08x, calloc_count=%d.\n", __func__, (int)ptr, calloc_count);
     }
     else {
         printf("%s: free error.\n", __func__);

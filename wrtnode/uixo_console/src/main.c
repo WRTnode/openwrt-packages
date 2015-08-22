@@ -152,7 +152,7 @@ static int uixo_console_handle_host(void)
         return -1;
     }
     PR_DEBUG("%s: client accept\n", __func__);
-    client = (struct uixo_client*)calloc(1, sizeof(*client));
+    client = (struct uixo_client*)uixo_console_calloc(1, sizeof(*client));
     if(NULL == client) {
         printf("%s: client calloc error.\n", __func__);
     }

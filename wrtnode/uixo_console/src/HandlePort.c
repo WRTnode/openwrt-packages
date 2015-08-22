@@ -175,17 +175,15 @@ int handle_port_delport(const char* port_name)
             uixo_console_free(tmp_p->name);
             PR_DEBUG("%s: finished delete port = %s.\n", __func__, port_name);
         }
-        PR_DEBUG("%s1.\n", __func__);
         pthread_mutex_lock(&tmp_p->port_mutex);
         PR_DEBUG("%s: take port lock.\n", __func__);
-        if((0 != tmp_p->rx_msg_thread) || (0 == pthread_kill(tmp_p->rx_msg_thread, 0))) {
+        if((0 != tmp_p->rx_msg_thread) && (0 == pthread_kill(tmp_p->rx_msg_thread, 0))) {
             pthread_cancel(tmp_p->rx_msg_thread);
             PR_DEBUG("%s: send cancel to rx thread(%d)\n", __func__, (int)tmp_p->rx_msg_thread);
             pthread_join(tmp_p->rx_msg_thread, NULL);
             PR_DEBUG("%s: rx thread(%d) exited.\n", __func__, (int)tmp_p->rx_msg_thread);
         }
         handle_msg_del_msglist(&tmp_p->msghead);
-        PR_DEBUG("%s2.\n", __func__);
         pthread_mutex_unlock(&tmp_p->port_mutex);
         PR_DEBUG("%s: release port lock.\n", __func__);
         pthread_mutex_destroy(&tmp_p->port_mutex);
