@@ -24,7 +24,7 @@
 /*
 
 */
-#define DugPrintg  1
+#define DugPrintg  0
 #if DugPrintg
 #define PR_DEBUG(fmt,args...) printf(fmt,##args)
 extern long calloc_count;

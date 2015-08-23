@@ -326,7 +326,12 @@ static int posix_serial_read(struct posix_serial* s, char* dst, int size)
         tv.tv_usec = s->sb->timeout.usec;
         FD_ZERO(&readfds);
         FD_SET(s->fd, &readfds);
-        readyfds = select(s->fd+1, &readfds, NULL, NULL, &tv);
+        if((0 == tv.tv_sec) && (0 == tv.tv_usec)) {
+            readyfds = select(s->fd+1, &readfds, NULL, NULL, NULL);
+        }
+        else {
+            readyfds = select(s->fd+1, &readfds, NULL, NULL, &tv);
+        }
         if(0 == readyfds) { //timeout. return read byte.
             break;
         }
@@ -382,7 +387,12 @@ static int posix_serial_write(struct posix_serial* s, const char* src, int size)
         tv.tv_usec = s->sb->timeout.usec;
         FD_ZERO(&writefds);
         FD_SET(s->fd, &writefds);
-        readyfds = select(s->fd+1, NULL, &writefds, NULL, &tv);
+        if((0 == tv.tv_sec) && (0 == tv.tv_usec)) {
+            readyfds = select(s->fd+1, NULL, &writefds, NULL, NULL);
+        }
+        else {
+            readyfds = select(s->fd+1, NULL, &writefds, NULL, &tv);
+        }
         if(0 == readyfds) { //timeout. return read byte.
             break;
         }

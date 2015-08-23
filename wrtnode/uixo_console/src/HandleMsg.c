@@ -332,70 +332,49 @@ LOAD_CMD_DATA_FORMAT_ERROR:
 
 int handle_msg_resolve_msg(const int fd)
 {
-    uixo_message_t* msg = NULL;
+    uixo_message_t msg;
     char head[UIXO_HEAD_LEN] = {0};
     ssize_t readn = 0;
     int ret = 0;
 
     PR_DEBUG("%s: client(fd = %d) send data in.\n", __func__, fd);
-    msg = (uixo_message_t*)uixo_console_calloc(1, sizeof(*msg));
-    if(NULL == msg) {
-        printf("%s: calloc message error.\n", __func__);
-        return -1;
-    }
 
-    msg->socketfd = fd;
+    msg.socketfd = fd;
     readn = read(fd, head, UIXO_HEAD_LEN);
     PR_DEBUG("%s: got message head = %s, len = %ld.\n", __func__, head, readn);
     if(readn != UIXO_HEAD_LEN) {
         printf("%s: read client head error. data = %s return = %ld\n", __func__, head, readn);
-        ret = -1;
-        goto HANDLE_MSG_MSG_FREE_OUT;
+        return -1;
     }
 
     if(0 == strcmp(head, "exit")) {
         PR_DEBUG("%s: read client exit message.\n", __func__);
-        ret = UIXO_MSG_CLIENT_EXIT_MSG;
-        goto HANDLE_MSG_MSG_FREE_OUT;
+        return UIXO_MSG_CLIENT_EXIT_MSG;
     }
     else {
-        char* read_buf = NULL;
         int buf_len = atoi(head);
+        char read_buf[buf_len+1];
 
         if(0 == buf_len) {
             printf("%s: client send data length is 0.\n", __func__);
-            ret = -1;
-            goto HANDLE_MSG_MSG_FREE_OUT;
-        }
-        read_buf = (char*)uixo_console_calloc(buf_len+1, sizeof(*read_buf));
-        if(NULL == read_buf) {
-            printf("%s: calloc read buffer error.\n", __func__);
-            ret = -1;
-            goto HANDLE_MSG_MSG_FREE_OUT;
+            return -1;
         }
         readn = read(fd, read_buf, buf_len);
         if((readn != buf_len)||(readn == -1)) {
             printf("%s: read client fd error. return = %ld\n", __func__, readn);
-            ret = -1;
-            goto HANDLE_MSG_READBUF_FREE_OUT;
+            return -1;
         }
         PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
 
-        if(handle_msg_parse_msg(read_buf, readn, msg) != UIXO_ERR_OK) {
+        if(handle_msg_parse_msg(read_buf, readn, &msg) != UIXO_ERR_OK) {
             printf("%s: uixo message parse err.\n", __func__);
-            ret = -1;
-            goto HANDLE_MSG_READBUF_FREE_OUT;
+            return -1;
         }
-        if(handle_port_fun_types(msg) < 0) {
+        if(handle_port_fun_types(&msg) < 0) {
             printf("%s: parse message error.\n", __func__);
-            ret = -1;
-            goto HANDLE_MSG_READBUF_FREE_OUT;
+            return -1;
         }
-HANDLE_MSG_READBUF_FREE_OUT:
-        uixo_console_free(read_buf);
     }
 
-HANDLE_MSG_MSG_FREE_OUT:
-    uixo_console_free(msg);
     return ret;
 }

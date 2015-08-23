@@ -90,7 +90,6 @@ static int uixo_console_create_socket(void)
 static int uixo_console_select_fds(fd_set* pfds)
 {
     int max_sockfds = socketfd;
-    struct timeval select_tv = {1,0}; //1s + 0ms
     struct uixo_client* tmp_client = NULL;
 
     FD_ZERO(pfds);
