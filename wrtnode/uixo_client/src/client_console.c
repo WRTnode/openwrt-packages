@@ -19,6 +19,11 @@
 #define PR_DBG(...)
 #endif
 
+struct client_msg {
+    char head[UIXO_HEAD_LEN];
+    char data[MAX_UIXO_MSG_LEN];
+};
+
 static int socketfd;
 
 static void quit_signal_handler(int a)
@@ -38,7 +43,7 @@ static int uixo_client_create_socket(const char* ip)
 		printf("%s: creat the socket fail!\n", __func__);
 		return -1;
 	}
-	memset(&serveraddr,0,sizeof(serveraddr));
+	//memset(&serveraddr,0,sizeof(serveraddr));
 	serveraddr.sin_family=AF_INET;
 	serveraddr.sin_port=htons(PORT);
 	serveraddr.sin_addr.s_addr=htonl(INADDR_ANY);
@@ -63,21 +68,19 @@ int main(int argc,char *argv[])
 
     {
 	    int string_len = 0;
-        char head[UIXO_HEAD_LEN] = {0};
-	    char cstring[MAX_UIXO_MSG_LEN] = {0};
+        struct client_msg msg;
 
-	    strcpy(cstring, argv[2]);
-        strcat(cstring, "\n");
-	    string_len = strlen(cstring);
+	    strcpy(msg.data, argv[2]);
+	    string_len = strlen(msg.data);
+        msg.data[string_len] = '\n';
+        string_len++;
+        msg.data[string_len] = '\0';
         if(string_len > MAX_UIXO_MSG_LEN) {
             printf("%s: input string too long. len=%d.\n", __func__, string_len);
         }
-        sprintf(head, "%04d", string_len);
-        if(send(socketfd, head, UIXO_HEAD_LEN, 0) < 0) {
-		    printf("%s: send %s error\n", __func__, head);
-	    }
-	    if(send(socketfd, cstring, strlen(cstring), 0) < 0) {
-		    printf("send error\n");
+        sprintf(msg.head, "%04d", string_len);
+        if(send(socketfd, (char*)&msg, string_len+UIXO_HEAD_LEN, 0) < 0) {
+		    printf("%s: send %s error\n", __func__, msg.head);
 	    }
     }
     {
@@ -89,17 +92,17 @@ int main(int argc,char *argv[])
 	    }
         else {
 	        int size;
-	        char buff[MAX_UIXO_MSG_LEN] = {0};
+	        char buff[MAX_UIXO_MSG_LEN];
             fd_set sreadfd;
 
 	        while(rttimes) {
-                memset(buff, 0, sizeof(buff));
                 FD_ZERO(&sreadfd);
                 FD_SET(socketfd, &sreadfd);
                 select(socketfd+1, &sreadfd, NULL, NULL, NULL);
 		        size = read(socketfd, buff, sizeof(buff));
 		        if(size > 0){
 			        rttimes--;
+                    buff[size] = '\0';
 		        }
 		        if(size == 0){
 			        break;
