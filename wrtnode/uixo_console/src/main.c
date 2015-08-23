@@ -28,7 +28,7 @@ Data        :2015.08.13
 #define MAX(a,b)  (((a) > (b))? (a): (b))
 #define MIN(x,y)  (((x) < (y))? (x): (y))
 #define PORT                         (8000)
-#define BACKLOG                      (100)
+#define BACKLOG                      (2000)
 
 #if DugPrintg
 long uixo_console_calloc_count = 0;

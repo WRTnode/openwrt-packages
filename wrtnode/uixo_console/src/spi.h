@@ -17,7 +17,7 @@ Date        :2015.08.01
 /*
     global functions
 */
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 extern long spi_malloc_count;
 #endif

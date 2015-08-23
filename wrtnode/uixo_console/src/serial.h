@@ -16,7 +16,7 @@
 /*
     global functions
 */
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 extern long serial_malloc_count;
 #endif

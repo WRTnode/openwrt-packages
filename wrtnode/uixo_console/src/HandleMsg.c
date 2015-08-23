@@ -173,7 +173,7 @@ static void* _handle_msg_receive_data_thread(void* arg)
                 int len = 0;
                 len = handle_port_read_line(port, rx_data, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
                 if(0 != len) {
-                    printf("%s", rx_data);
+                    PR_DEBUG("%s", rx_data);
                     if(send(msg->socketfd, rx_data, len, 0) < 0) {
                         printf("%s: send to client error.\n", __func__);
                     }
@@ -187,13 +187,14 @@ static void* _handle_msg_receive_data_thread(void* arg)
                 int len = 0;
                 len = handle_port_read_line(port, rx_data, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
                 if(0 != len) {
-                    printf("%s", rx_data);
+                    PR_DEBUG("%s", rx_data);
                     if(send(msg->socketfd, rx_data, len, 0) < 0) {
                         printf("%s: send to client error.\n", __func__);
                     }
                 }
                 memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
             }
+            uixo_console_free(rx_data);
             handle_msg_free_msg(msg);
         }
         else {
@@ -353,7 +354,7 @@ int handle_msg_resolve_msg(const int fd)
     }
 
     if(0 == strcmp(head, "exit")) {
-        printf("%s: read client exit message.\n", __func__);
+        PR_DEBUG("%s: read client exit message.\n", __func__);
         ret = UIXO_MSG_CLIENT_EXIT_MSG;
         goto HANDLE_MSG_MSG_FREE_OUT;
     }
