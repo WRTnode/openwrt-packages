@@ -360,6 +360,12 @@ int handle_msg_resolve_msg(const int fd)
     else {
         char* read_buf = NULL;
         int buf_len = atoi(head);
+
+        if(0 == buf_len) {
+            printf("%s: client send data length is 0.\n", __func__);
+            ret = -1;
+            goto HANDLE_MSG_MSG_FREE_OUT;
+        }
         read_buf = (char*)uixo_console_calloc(buf_len+1, sizeof(*read_buf));
         if(NULL == read_buf) {
             printf("%s: calloc read buffer error.\n", __func__);
