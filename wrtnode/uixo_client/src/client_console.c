@@ -12,10 +12,6 @@
 #define MAX_UIXO_MSG_LEN  (4096)
 
 #define PORT 8000
-typedef struct{
-	int sfd;
-	int times;
-}argument;
 
 #ifdef DEBUG
 #define PR_DBG   printf
@@ -23,24 +19,21 @@ typedef struct{
 #define PR_DBG(...)
 #endif
 
-int client_socket_fd;
+static int socketfd;
 
-void* work(void* arg1){
-	argument *arg = (argument*)arg1;
+void* work(void* arg){
 	int size;
-	char buff[1024] = {0};
-	int cs = arg->sfd;
-	//加1，是因为发送出去一条消息会收到一条打印信息
-	int rttimes = arg->times;
+	char buff[MAX_UIXO_MSG_LEN] = {0};
+	int rttimes = *(int*)arg;
     fd_set sreadfd;
 
     PR_DBG("%s: in thread.\n", __func__);
 	while(rttimes) {
         memset(buff, 0, sizeof(buff));
         FD_ZERO(&sreadfd);
-        FD_SET(cs, &sreadfd);
-        select(cs+1, &sreadfd, NULL, NULL, NULL);
-		size = read(cs,buff,sizeof(buff));
+        FD_SET(socketfd, &sreadfd);
+        select(socketfd+1, &sreadfd, NULL, NULL, NULL);
+		size = read(socketfd, buff, sizeof(buff));
 		if(size > 0){
 			rttimes--;
 		}
@@ -51,74 +44,51 @@ void* work(void* arg1){
 		buff[size] = '\0';
 		printf("%s",buff);
 	}
-    send(cs, "exit", sizeof("exit"), 0);
-	close(cs);
+    send(socketfd, "exit", sizeof("exit"), 0);
+	close(socketfd);
 	return 0;
 
 }
 
 static void quit_signal_handler(int a)
 {
-    send(client_socket_fd, "exit", sizeof("exit"), 0);
-	close(client_socket_fd);
+    send(socketfd, "exit", sizeof("exit"), 0);
+	close(socketfd);
     exit(0);
 }
 
-int main(int argc,char *argv[])
+static int uixo_client_create_socket(const char* ip)
 {
-	int cs,cc;
-	int n;
-	int ret;
-	int rttimes = 0;
-	char cstring[1024];
-	int string_len = 0;
-	char buff[1024];
-	size_t size;
-	pid_t pid;
-	pthread_t tpid;
 	struct sockaddr_in serveraddr;
-
-    signal(SIGINT, quit_signal_handler);
-    signal(SIGTSTP, quit_signal_handler);
-
+    int cs = 0;
+    int opt = SO_REUSEADDR;
 	cs = socket(AF_INET,SOCK_STREAM,0);
 	if(cs<0){
-		printf("creat the socket fail!\n");
+		printf("%s: creat the socket fail!\n", __func__);
 		return -1;
 	}
-    client_socket_fd = cs;
-	memset(buff,0,sizeof(buff));
 	memset(&serveraddr,0,sizeof(serveraddr));
 	serveraddr.sin_family=AF_INET;
 	serveraddr.sin_port=htons(PORT);
 	serveraddr.sin_addr.s_addr=htonl(INADDR_ANY);
-	inet_pton(AF_INET,argv[1],&serveraddr.sin_addr);
-	setsockopt(cs,SOL_SOCKET,SO_REUSEADDR,&n,sizeof(int));
-	ret = connect(cs,(struct sockaddr*)&serveraddr,sizeof(struct sockaddr));
-	PR_DBG("ret = %d\n",ret);
-	if(ret < 0){
-		printf("connect error\n");
+	inet_pton(AF_INET, ip, &serveraddr.sin_addr);
+	setsockopt(cs, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
+	if(connect(cs, (struct sockaddr*)&serveraddr, sizeof(struct sockaddr)) < 0) {
+		printf("%s: connect error\n", __func__);
 	}
-#if 0
-	printf("Ple input a similar [1234:2:m:22:3:115200:/dev/ttyS0:mkport],input 'quit' to exit\n");
-#endif
+    return cs;
+}
+
+int main(int argc,char *argv[])
+{
+	static int rttimes = 0;
+	pthread_t tpid;
+
+    signal(SIGINT, quit_signal_handler);
+    signal(SIGTSTP, quit_signal_handler);
+
+    socketfd = uixo_client_create_socket(argv[1]);
     rttimes = atoi(argv[3]);
-    if(0 != rttimes) {
-	    argument* arg = NULL;
-        arg = (argument*)calloc(1, sizeof(*arg));
-	    arg->sfd = cs;
-	    arg->times = rttimes;
-	    ret = pthread_create(&tpid, NULL,work,arg) ;
-	    if(ret != 0){
-		    printf("pthread_create fail\n");
-		    return -1;
-	    }
-    }
-	strcpy(cstring,argv[2]);
-	string_len = strlen(cstring);
-	//加换行符，否则导致阻塞
-	cstring[string_len] = '\n';
-    cstring[string_len+1] = '\0';
 
 #if 0
 	if(strncmp(cstring,"quit",4)==0){
@@ -130,29 +100,36 @@ int main(int argc,char *argv[])
 		printf("Ple input right format as '[time:len:cmd:data:/dev/device_name]'\n");
 #endif
     {
+	    int string_len = 0;
         char head[UIXO_HEAD_LEN] = {0};
-        string_len = strlen(cstring);
+	    char cstring[MAX_UIXO_MSG_LEN] = {0};
+
+	    strcpy(cstring, argv[2]);
+        strcat(cstring, "\n");
+	    string_len = strlen(cstring);
         if(string_len > MAX_UIXO_MSG_LEN) {
             printf("%s: input string too long. len=%d.\n", __func__, string_len);
         }
         sprintf(head, "%04d", string_len);
-        ret = send(cs, head, UIXO_HEAD_LEN, 0);
-	    if(ret < 0){
+        if(send(socketfd, head, UIXO_HEAD_LEN, 0) < 0) {
+		    printf("%s: send %s error\n", __func__, head);
+	    }
+	    if(send(socketfd, cstring, strlen(cstring)+1, 0) < 0) {
 		    printf("send error\n");
 	    }
     }
-	ret = send(cs,cstring,strlen(cstring),0);
-	if(ret < 0){
-		printf("send error\n");
-	}
 	if(rttimes == 0){
-        send(cs, "exit", sizeof("exit"), 0);
-		close(cs);
+        send(socketfd, "exit", sizeof("exit"), 0);
+		close(socketfd);
 		return 0;
 	}
+    else {
+	    if(pthread_create(&tpid, NULL, work, &rttimes) != 0) {
+		    printf("%s: pthread_create fail\n", __func__);
+		    return -1;
+	    }
+    }
 
 	pthread_join(tpid, NULL);
-	printf("Received all the data\n");
-	close(cs);
 	return 0;
 }
