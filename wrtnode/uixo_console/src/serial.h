@@ -14,6 +14,57 @@
 #include <stdbool.h>
 
 /*
+    global functions
+*/
+#define DEBUG
+#ifdef DEBUG
+extern long serial_malloc_count;
+#endif
+static inline void* serial_malloc(size_t size)
+{
+    void* ptr = NULL;
+    ptr = malloc(size);
+    if(NULL == ptr) {
+        printf("%s: malloc error.\n", __func__);
+        return NULL;
+    }
+#ifdef DEBUG
+    serial_malloc_count++;
+    printf("%s: malloc mem addr=0x%08x, len=%d malloc_count=%d.\n", __func__, (int)ptr, (int)size, (int)serial_malloc_count);
+#endif
+    return ptr;
+}
+
+static inline void* serial_calloc(size_t count, size_t size)
+{
+    void* ptr = NULL;
+    ptr = calloc(count, size);
+    if(NULL == ptr) {
+        printf("%s: calloc error.\n", __func__);
+        return NULL;
+    }
+#ifdef DEBUG
+    serial_malloc_count++;
+    printf("%s: calloc mem addr=0x%08x, len=%d malloc_count=%d.\n", __func__, (int)ptr, (int)count*size, (int)serial_malloc_count);
+#endif
+    return ptr;
+}
+
+static inline void serial_free(void* ptr)
+{
+    if(NULL != ptr) {
+        free(ptr);
+#ifdef DEBUG
+        serial_malloc_count--;
+        printf("%s: free mem addr=0x%08x, malloc_count=%d.\n", __func__, (int)ptr, (int)serial_malloc_count);
+#endif
+    }
+    else {
+        printf("%s: free error.\n", __func__);
+    }
+}
+
+/*
     serial specific values
 */
 typedef enum {

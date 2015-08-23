@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <time.h>
 
 #define UIXO_HEAD_LEN     (5)
 #define MAX_UIXO_MSG_LEN  (4096)
@@ -20,35 +20,6 @@
 #endif
 
 static int socketfd;
-
-void* work(void* arg){
-	int size;
-	char buff[MAX_UIXO_MSG_LEN] = {0};
-	int rttimes = *(int*)arg;
-    fd_set sreadfd;
-
-    PR_DBG("%s: in thread.\n", __func__);
-	while(rttimes) {
-        memset(buff, 0, sizeof(buff));
-        FD_ZERO(&sreadfd);
-        FD_SET(socketfd, &sreadfd);
-        select(socketfd+1, &sreadfd, NULL, NULL, NULL);
-		size = read(socketfd, buff, sizeof(buff));
-		if(size > 0){
-			rttimes--;
-		}
-		if(size == 0){
-			break;
-		}
-
-		buff[size] = '\0';
-		printf("%s",buff);
-	}
-    send(socketfd, "exit", sizeof("exit"), 0);
-	close(socketfd);
-	return 0;
-
-}
 
 static void quit_signal_handler(int a)
 {
@@ -90,15 +61,6 @@ int main(int argc,char *argv[])
     socketfd = uixo_client_create_socket(argv[1]);
     rttimes = atoi(argv[3]);
 
-#if 0
-	if(strncmp(cstring,"quit",4)==0){
-		printf("quit client\n");
-		close(cs);
-		return 0;
-	}
-	else if(cstring[0]!='['|| cstring[(string_len)-1]!=']')
-		printf("Ple input right format as '[time:len:cmd:data:/dev/device_name]'\n");
-#endif
     {
 	    int string_len = 0;
         char head[UIXO_HEAD_LEN] = {0};
@@ -114,22 +76,41 @@ int main(int argc,char *argv[])
         if(send(socketfd, head, UIXO_HEAD_LEN, 0) < 0) {
 		    printf("%s: send %s error\n", __func__, head);
 	    }
-	    if(send(socketfd, cstring, strlen(cstring)+1, 0) < 0) {
+	    if(send(socketfd, cstring, strlen(cstring), 0) < 0) {
 		    printf("send error\n");
 	    }
     }
-	if(rttimes == 0){
-        send(socketfd, "exit", sizeof("exit"), 0);
-		close(socketfd);
-		return 0;
-	}
-    else {
-	    if(pthread_create(&tpid, NULL, work, &rttimes) != 0) {
-		    printf("%s: pthread_create fail\n", __func__);
-		    return -1;
+    {
+	    if(rttimes == 0){
+            if(send(socketfd, "exit", sizeof("exit"), 0) < 0) {
+		        printf("send error\n");
+            }
+		    close(socketfd);
 	    }
+        else {
+	        int size;
+	        char buff[MAX_UIXO_MSG_LEN] = {0};
+            fd_set sreadfd;
+
+	        while(rttimes) {
+                memset(buff, 0, sizeof(buff));
+                FD_ZERO(&sreadfd);
+                FD_SET(socketfd, &sreadfd);
+                select(socketfd+1, &sreadfd, NULL, NULL, NULL);
+		        size = read(socketfd, buff, sizeof(buff));
+		        if(size > 0){
+			        rttimes--;
+		        }
+		        if(size == 0){
+			        break;
+		        }
+
+		        printf("%s",buff);
+	        }
+            send(socketfd, "exit", sizeof("exit"), 0);
+	        close(socketfd);
+        }
     }
 
-	pthread_join(tpid, NULL);
 	return 0;
 }

@@ -347,7 +347,7 @@ int handle_msg_resolve_msg(const int fd)
     readn = read(fd, head, UIXO_HEAD_LEN);
     PR_DEBUG("%s: got message head = %s, len = %ld.\n", __func__, head, readn);
     if(readn != UIXO_HEAD_LEN) {
-        printf("%s: read client head error. return = %ld", __func__, readn);
+        printf("%s: read client head error. data = %s return = %ld\n", __func__, head, readn);
         ret = -1;
         goto HANDLE_MSG_MSG_FREE_OUT;
     }

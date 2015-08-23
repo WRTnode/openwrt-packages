@@ -31,7 +31,7 @@ Data        :2015.08.13
 #define BACKLOG                      (100)
 
 #if DugPrintg
-long calloc_count = 0;
+long uixo_console_calloc_count = 0;
 #endif
 
 struct uixo_client {

@@ -281,9 +281,9 @@ static int posix_serial_close(struct posix_serial* s)
         /* free port name */
         s->sb->clean_port(s->sb);
         /* free serial_base */
-        free(s->sb);
+        serial_free(s->sb);
         /* free posix_serial */
-        free(s);
+        serial_free(s);
     }
     else {
         printf("%s: posix serial(%s) is not open, close failed.\n", __func__, s->sb->get_port(s->sb));
@@ -492,7 +492,7 @@ struct posix_serial* posix_serial_port_init(posix_serial_init_t* psp)
     }
 
     /* malloc a posix_serial port */
-    ps = (struct posix_serial*)malloc(1*sizeof(struct posix_serial));
+    ps = (struct posix_serial*)serial_malloc(1*sizeof(struct posix_serial));
     if(NULL==ps) {
 		printf("fail2\n");
         goto POSIX_SERIAL_PORT_INIT_MALLOC_PS_ERROR;
@@ -520,7 +520,7 @@ struct posix_serial* posix_serial_port_init(posix_serial_init_t* psp)
     return ps;
 
 POSIX_SERIAL_PORT_INIT_INIT_SB_ERROR:
-    free(ps);
+    serial_free(ps);
 POSIX_SERIAL_PORT_INIT_MALLOC_PS_ERROR:
 POSIX_SERIAL_PORT_INIT_INPUT_ERROR:
     return NULL;

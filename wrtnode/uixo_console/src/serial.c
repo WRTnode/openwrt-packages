@@ -16,6 +16,9 @@
 
 #include "serial.h"
 
+#ifdef DEBUG
+long serial_malloc_count;
+#endif
 /*
     serial port support values
 */
@@ -151,7 +154,7 @@ static int _set_port(struct serial_base* s, const char* name)
         name = "/dev/ttyS0";
     }
     //copy name to serial_base.
-    s->port = (char*)malloc((strlen(name)+1)*sizeof(char));
+    s->port = (char*)serial_malloc((strlen(name)+1)*sizeof(char));
     if(NULL == s->port) {
         ret = -SERIAL_ERR_MEM;
         goto SERIAL_SET_PORT_MEM_ERROR;
@@ -183,7 +186,7 @@ static int _clean_port(struct serial_base* s)
         goto SERIAL_CLEAN_PORT_INPUT_ERROR;
     }
     if(NULL != s->port) {
-        free(s->port);
+        serial_free(s->port);
         s->port = NULL;
     }
     return 0;
@@ -439,7 +442,7 @@ struct serial_base* base_serial_port_init(serial_init_t* sp)
     }
 
     /* malloc a serial_base port */
-    sb = (struct serial_base*)calloc(1, sizeof(struct serial_base));
+    sb = (struct serial_base*)serial_calloc(1, sizeof(struct serial_base));
     if(NULL==sb) {
         goto BASE_SERIAL_PORT_INIT_MALLOC_PS_ERROR;
     }
@@ -487,7 +490,7 @@ struct serial_base* base_serial_port_init(serial_init_t* sp)
     return sb;
 
 BASE_SERIAL_PORT_INIT_MEMBER_VAL_ERROR:
-    free(sb);
+    serial_free(sb);
 BASE_SERIAL_PORT_INIT_MALLOC_PS_ERROR:
 BASE_SERIAL_PORT_INIT_INPUT_ERROR:
     return NULL;

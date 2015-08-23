@@ -159,9 +159,9 @@ static int spi_mt7688_close(struct spi_mt7688* s)
         /* free port name */
         s->sb->clean_port(s->sb);
         /* free spi_base */
-        free(s->sb);
+        spi_free(s->sb);
         /* free spi mt7688 */
-        free(s);
+        spi_free(s);
     }
     return 0;
 
@@ -270,7 +270,7 @@ struct spi_mt7688* spi_mt7688_port_init(spi_mt7688_init_t* psp)
         goto SPI_MT7688_PORT_INIT_INPUT_ERROR;
     }
 
-    ps = (struct spi_mt7688*)malloc(1*sizeof(struct spi_mt7688));
+    ps = (struct spi_mt7688*)spi_malloc(1*sizeof(struct spi_mt7688));
     if(NULL==ps) {
         goto SPI_MT7688_PORT_INIT_MALLOC_PS_ERROR;
     }
@@ -289,7 +289,7 @@ struct spi_mt7688* spi_mt7688_port_init(spi_mt7688_init_t* psp)
     return ps;
 
 SPI_MT7688_PORT_INIT_INIT_SB_ERROR:
-    free(ps);
+    spi_free(ps);
 SPI_MT7688_PORT_INIT_MALLOC_PS_ERROR:
 SPI_MT7688_PORT_INIT_INPUT_ERROR:
     return NULL;

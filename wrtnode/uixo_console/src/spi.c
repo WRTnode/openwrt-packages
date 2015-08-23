@@ -19,6 +19,10 @@ Date        :2015.08.01
 
 #define SPI_BAUDRATE_DEFAULT          (1000000)
 #define SPI_BYTESIZE_DEFAULT          (8)
+
+#ifdef DEBUG
+long spi_malloc_count;
+#endif
 /*
    base spi member functions
 */
@@ -78,7 +82,7 @@ static int _set_port(struct spi_base* s, const char* name)
         name = "/dev/spiS0";
     }
     //copy name to spi_base.
-    s->port = (char*)malloc((strlen(name)+1)*sizeof(char));
+    s->port = (char*)spi_malloc((strlen(name)+1)*sizeof(char));
     if(NULL == s->port) {
         ret = -SPI_ERR_MEM;
         goto SPI_SET_PORT_MEM_ERROR;
@@ -110,7 +114,7 @@ static int _clean_port(struct spi_base* s)
         goto SPI_CLEAN_PORT_INPUT_ERROR;
     }
     if(NULL != s->port) {
-        free(s->port);
+        spi_free(s->port);
         s->port = NULL;
     }
     return 0;
@@ -223,7 +227,7 @@ struct spi_base* base_spi_port_init(spi_init_t* sp)
     }
 
     /* malloc a spi_base port */
-    sb = (struct spi_base*)malloc(1*sizeof(struct spi_base));
+    sb = (struct spi_base*)spi_malloc(1*sizeof(struct spi_base));
     if(NULL==sb) {
         goto BASE_SPI_PORT_INIT_MALLOC_PS_ERROR;
     }
@@ -256,7 +260,7 @@ struct spi_base* base_spi_port_init(spi_init_t* sp)
     return sb;
 
 BASE_SPI_PORT_INIT_MEMBER_VAL_ERROR:
-    free(sb);
+    spi_free(sb);
 BASE_SPI_PORT_INIT_MALLOC_PS_ERROR:
 BASE_SPI_PORT_INIT_INPUT_ERROR:
     return NULL;

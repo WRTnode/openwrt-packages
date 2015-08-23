@@ -110,7 +110,9 @@ typedef enum {
 /*
     global functions
 */
-extern long calloc_count;
+#if DugPrintg
+extern long uixo_console_calloc_count;
+#endif
 static inline void* uixo_console_calloc(size_t count, size_t size)
 {
     void* ptr = NULL;
@@ -119,8 +121,10 @@ static inline void* uixo_console_calloc(size_t count, size_t size)
         printf("%s: calloc error.\n", __func__);
         return NULL;
     }
-    calloc_count++;
-    PR_DEBUG("%s: calloc mem addr=0x%08x, len=%d calloc_count=%d.\n", __func__, (int)ptr, count*size, calloc_count);
+#if DugPrintg
+    uixo_console_calloc_count++;
+#endif
+    PR_DEBUG("%s: calloc mem addr=0x%08x, len=%d calloc_count=%d.\n", __func__, (int)ptr, (int)count*size, uixo_console_calloc_count);
     return ptr;
 }
 
@@ -128,8 +132,10 @@ static inline void uixo_console_free(void* ptr)
 {
     if(NULL != ptr) {
         free(ptr);
-        calloc_count--;
-        PR_DEBUG("%s: free mem addr=0x%08x, calloc_count=%d.\n", __func__, (int)ptr, calloc_count);
+#if DugPrintg
+        uixo_console_calloc_count--;
+#endif
+        PR_DEBUG("%s: free mem addr=0x%08x, calloc_count=%d.\n", __func__, (int)ptr, uixo_console_calloc_count);
     }
     else {
         printf("%s: free error.\n", __func__);

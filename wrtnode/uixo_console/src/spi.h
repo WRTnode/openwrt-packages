@@ -14,6 +14,57 @@ Date        :2015.08.01
 */
 #include <stdbool.h>
 
+/*
+    global functions
+*/
+#define DEBUG
+#ifdef DEBUG
+extern long spi_malloc_count;
+#endif
+static inline void* spi_malloc(size_t size)
+{
+    void* ptr = NULL;
+    ptr = malloc(size);
+    if(NULL == ptr) {
+        printf("%s: malloc error.\n", __func__);
+        return NULL;
+    }
+#ifdef DEBUG
+    spi_malloc_count++;
+    printf("%s: malloc mem addr=0x%08x, len=%d malloc_count=%d.\n", __func__, (int)ptr, (int)size, (int)spi_malloc_count);
+#endif
+    return ptr;
+}
+
+static inline void* spi_calloc(size_t count, size_t size)
+{
+    void* ptr = NULL;
+    ptr = calloc(count, size);
+    if(NULL == ptr) {
+        printf("%s: calloc error.\n", __func__);
+        return NULL;
+    }
+#ifdef DEBUG
+    spi_malloc_count++;
+    printf("%s: calloc mem addr=0x%08x, len=%d malloc_count=%d.\n", __func__, (int)ptr, (int)count*size, (int)spi_malloc_count);
+#endif
+    return ptr;
+}
+
+static inline void spi_free(void* ptr)
+{
+    if(NULL != ptr) {
+        free(ptr);
+#ifdef DEBUG
+        spi_malloc_count--;
+        printf("%s: free mem addr=0x%08x, calloc_count=%d.\n", __func__, (int)ptr, (int)spi_malloc_count);
+#endif
+    }
+    else {
+        printf("%s: free error.\n", __func__);
+    }
+}
+
 typedef enum {
     SPI_ERR_NODEV = 1,
     SPI_ERR_MEM,
