@@ -128,6 +128,22 @@ static inline void* uixo_console_calloc(size_t count, size_t size)
     return ptr;
 }
 
+static inline void* uixo_console_malloc(size_t size)
+{
+    void* ptr = NULL;
+    ptr = malloc(size);
+    if(NULL == ptr) {
+        printf("%s: calloc error.\n", __func__);
+        return NULL;
+    }
+#if DugPrintg
+    uixo_console_calloc_count++;
+#endif
+    PR_DEBUG("%s: malloc mem addr=0x%08x, len=%d calloc_count=%d.\n", __func__, (int)ptr, (int)size, uixo_console_calloc_count);
+    return ptr;
+}
+
+
 static inline void uixo_console_free(void* ptr)
 {
     if(NULL != ptr) {

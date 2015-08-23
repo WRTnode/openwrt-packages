@@ -93,27 +93,22 @@ static int handle_msg_format_data(char* dest, const char* src)
             len++;
         }
     }
+    *dest = '\0';
     return len;
 }
 
 int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
 {
-    char* tx_data = NULL;
+    char tx_data[msg->len+1];
     int data_len = 0;
 
     if((NULL == port) || (NULL == port->port) || (NULL == msg)) {
         printf("%s: input data is NULL\n", __func__);
         return -1;
     }
-    tx_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(char));
-    if(NULL == tx_data) {
-        printf("%s: calloc error\n", __func__);
-        return -1;
-    }
     data_len = handle_msg_format_data(tx_data, msg->data);
     if(data_len <= 0) {
         printf("%s: data len = %d\n", __func__, data_len);
-        uixo_console_free(tx_data);
         return -1;
     }
     PR_DEBUG("%s: TX=%s, LEN=%d\n", __func__, tx_data, data_len);
@@ -124,7 +119,6 @@ int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
         PR_DEBUG("%s: send to port data = %s and len = %d\n", __func__, tx_data, data_len);
         writen = sm->write(sm, tx_data, data_len);
         if(writen < 0) {
-            uixo_console_free(tx_data);
             printf("%s: send message failed\n", __func__);
             return -1;
         }
@@ -135,12 +129,10 @@ int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg)
         PR_DEBUG("%s: send to port data = %s and len = %d\n", __func__, tx_data, data_len);
         writen = ps->write(ps, tx_data, data_len);
         if(writen < 0) {
-            uixo_console_free(tx_data);
             printf("%s: send message failed\n", __func__);
             return -1;
         }
     }
-    uixo_console_free(tx_data);
     return 0;
 }
 
@@ -164,8 +156,7 @@ static void* _handle_msg_receive_data_thread(void* arg)
         list_del(&msg->list);
         pthread_mutex_unlock(&port->port_mutex);
         PR_DEBUG("%s: release port lock.\n", __func__);
-        char* rx_data = NULL;
-        rx_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*rx_data));
+        char rx_data[MAX_UIXO_MSG_LEN];
 
         PR_DEBUG("%s: got a message from list, rttimes=%d\n", __func__, msg->rttimes);
         if(UIXO_MSG_ALWAYS_WAIT_MSG == msg->rttimes) {
@@ -179,7 +170,6 @@ static void* _handle_msg_receive_data_thread(void* arg)
                     }
                     PR_DEBUG("%s: send %s to client(fd=%d).\n", __func__, rx_data, msg->socketfd);
                 }
-                memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
             }
         }
         else if (0 < msg->rttimes) {
@@ -192,9 +182,7 @@ static void* _handle_msg_receive_data_thread(void* arg)
                         printf("%s: send to client error.\n", __func__);
                     }
                 }
-                memset(rx_data, 0, MAX_UIXO_MSG_LEN*sizeof(*rx_data));
             }
-            uixo_console_free(rx_data);
             handle_msg_free_msg(msg);
         }
         else {
@@ -269,17 +257,11 @@ static int _find_string_between_two_char(const char* src, const char start, cons
 static int handle_msg_parse_msg(const char* data, const ssize_t len, uixo_message_t* msg)
 {
     int ret = 0;
-    char* valid_data = NULL;
+    char valid_data[len+1];
     char* ptr = NULL;
 
     if((0 == len) || (NULL == data)) {
         return -1;
-    }
-
-    valid_data = (char*)uixo_console_calloc(MAX_UIXO_MSG_LEN, sizeof(*valid_data));
-    if(NULL == valid_data) {
-        printf("%s: calloc error\n", __func__);
-        return -UIXO_ERR_NULL;
     }
 
 	/* onemsg : [time:len:cmd:data:rttimes:baudrate:/dev/device_name:fnname] */
@@ -318,7 +300,6 @@ static int handle_msg_parse_msg(const char* data, const ssize_t len, uixo_messag
              msg->time, msg->len, msg->cmd, msg->data, msg->rttimes, msg->port_baudrate,
              msg->port_name, msg->fn_name);
 
-    uixo_console_free(valid_data);
     return 0;
 
 LOAD_CMD_DATA_FORMAT_ERROR:
@@ -326,7 +307,6 @@ LOAD_CMD_DATA_FORMAT_ERROR:
     printf("time=%ld,len=%d,cmd=%c,data=%s,rttimes=%d,baudrate=%d,device=%s,fn=%s\n",
              msg->time, msg->len, msg->cmd, msg->data, msg->rttimes, msg->port_baudrate,
              msg->port_name, msg->fn_name);
-    uixo_console_free(valid_data);
     return -UIXO_CONSOLE_ERR_INPUT_NULL;
 }
 
@@ -364,6 +344,7 @@ int handle_msg_resolve_msg(const int fd)
             printf("%s: read client fd error. return = %ld\n", __func__, readn);
             return -1;
         }
+        read_buf[readn] = '\0';
         PR_DEBUG("%s: read data = %s, length = %ld\n", __func__, read_buf, readn);
 
         if(handle_msg_parse_msg(read_buf, readn, &msg) != UIXO_ERR_OK) {

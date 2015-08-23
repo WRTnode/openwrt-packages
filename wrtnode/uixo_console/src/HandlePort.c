@@ -217,7 +217,7 @@ int handle_port_hlport(uixo_message_t* msg)
                 }
                 if(msg->rttimes != 0) {
                     uixo_message_t* msg_bak = NULL;
-                    msg_bak = (uixo_message_t*)uixo_console_calloc(1, sizeof(uixo_message_t));
+                    msg_bak = (uixo_message_t*)uixo_console_malloc(sizeof(uixo_message_t));
                     if(NULL == msg_bak) {
                         printf("%s: rttimes>0, but calloc copy message error.\n", __func__);
                         return -1;
@@ -267,8 +267,8 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
     if(0 == strncmp(port->name, "/dev/tty", strlen("/dev/tty"))) {
         struct posix_serial* ps = port->port;
         while(0 != (len - readn)) {
-            int ret = 0;
-            char ch = '\0';
+            int ret;
+            char ch;
             ret = ps->read(ps, &ch, 1);
             if(0 < ret) {
                 PR_DEBUG("%s: got ch=%c(0x%02x).\n", __func__, ch, ch);
@@ -283,7 +283,6 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
                 }
             }
             else {
-                usleep(10000);
                 continue;
             }
         }
@@ -291,8 +290,8 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
     else if(0 == strncmp(port->name, "/dev/spiS", strlen("/dev/spiS"))) {
         struct spi_mt7688* ps = port->port;
         while(0 != (len - readn)) {
-            int ret = 0;
-            char ch = '\0';
+            int ret;
+            char ch;
             ret = ps->read(ps, &ch, 1);
             if(0 < ret) {
                 PR_DEBUG("%s: got ch=%c(0x%02x).\n", __func__, ch, ch);
@@ -307,7 +306,6 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
                 }
             }
             else {
-                usleep(10000);
                 continue;
             }
         }
@@ -316,6 +314,8 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
         printf("%s: port(%s) error.\n", __func__, port->name);
         return 0;
     }
+    *ptr = '\0';
+
     printf("%s: read %d data, but no Enter got.\n", __func__, readn);
     return readn;
 }
