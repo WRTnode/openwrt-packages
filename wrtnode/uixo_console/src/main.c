@@ -21,6 +21,7 @@ Data        :2015.08.13
 #include <pthread.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "list.h"
 #include "uixo_console.h"
@@ -37,6 +38,7 @@ long uixo_console_calloc_count = 0;
 struct uixo_client {
     struct list_head list;
     int fd;
+    pid_t pid;
 };
 
 /*
@@ -75,7 +77,6 @@ static int uixo_console_create_socket(void)
     serveraddr.sin_family=AF_INET;
     serveraddr.sin_port=htons(PORT);
     serveraddr.sin_addr.s_addr=htonl(INADDR_ANY);
-    /*用在多播的时候，也经常使用SO_REUSEADDR，也是为了防止机器出现意外，导致端口没有释放，而使重启后的绑定失败*/
     setsockopt(ss, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
     ret = bind(ss, (struct sockaddr*)&serveraddr, sizeof(struct sockaddr));
     if(ret < 0) {
@@ -87,21 +88,14 @@ static int uixo_console_create_socket(void)
     return ss;
 }
 
-static int uixo_console_select_fds(fd_set* pfds)
+static int uixo_console_host_select(void)
 {
+    fd_set sreadfds;
     int max_sockfds = socketfd;
-    struct uixo_client* tmp_client = NULL;
 
-    FD_ZERO(pfds);
-    FD_SET(socketfd, pfds);
-    list_for_each_entry(tmp_client, &uixo_client_head, list) {
-        if(0 != tmp_client->fd) {
-            FD_SET(tmp_client->fd, pfds);
-            max_sockfds = MAX(max_sockfds, tmp_client->fd);
-            PR_DEBUG("%s: Add fd = %d to select, max_sockfds = %d.\n", __func__, tmp_client->fd, max_sockfds);
-        }
-    }
-    return select(max_sockfds+1, pfds, NULL, NULL, NULL);
+    FD_ZERO(&sreadfds);
+    FD_SET(socketfd, &sreadfds);
+    return select(max_sockfds+1, &sreadfds, NULL, NULL, NULL);
 }
 
 static int uixo_console_client_remove(const int fd)
@@ -139,6 +133,7 @@ static int uixo_console_handle_host(void)
 {
     int sc = 0;
     struct uixo_client* client = NULL;
+    pid_t pid;
 
     if(connct_num == BACKLOG) {
         printf("%s: max connetction arrive, bye\n", __func__);
@@ -159,7 +154,46 @@ static int uixo_console_handle_host(void)
     client->fd = sc;
     list_add_tail(&client->list, &uixo_client_head);
     connct_num++;
-    return 0;
+
+    pid = fork();
+    if(pid < 0) {
+        printf("%s: host fork client(%d) handler error.\n", __func__, sc);
+        return -1;
+    }
+    else if(pid > 0) { /* host(parent) */
+        client->pid = pid;
+        PR_DEBUG("%s: client(%d) handler forked.\n", __func__, sc);
+        return 0;
+    }
+    else { /* client(child) */
+        if(uixo_console_handle_client(sc) < 0) {
+            printf("%s: client handle failed.\n", __func__);
+            return -1;
+        }
+        exit(0);
+    }
+}
+
+static void handle_client_exit(void)
+{
+    int client_ret;
+    pid_t client_pid;
+
+    client_pid = wait(&client_ret);
+    if(0 != client_ret) {
+        printf("%s: client handler(%d) exit with error %d.\n", __func__, (int)client_pid, client_ret);
+    }
+    else {
+        struct uixo_client* tmp_client;
+
+        list_for_each_entry(tmp_client, &uixo_client_head, list) {
+            if(client_pid == tmp_client->pid) {
+                PR_DEBUG("%s: client(%d) removing.\n", __func__, tmp_client->fd)
+                uixo_console_client_remove(tmp_client->fd);
+            }
+        }
+        printf("%s: cannot find client in list. client handle pid=%d.\n", __func__, (int)client_pid);
+    }
 }
 
 /*
@@ -173,11 +207,11 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    while(1) {
-        fd_set sreadfds;
-        int ret = 0;
+    signal(SIGCHLD, handle_client_exit);
 
-        ret = uixo_console_select_fds(&sreadfds);
+    while(1) {
+        int ret = 0;
+        ret = uixo_console_host_select();
         if(ret < 0) { /* select error */
             printf("%s: select fail\n", __func__);
             break;
@@ -187,6 +221,7 @@ int main(int argc, char* argv[])
             continue;
         }
         else { /* can read */
+#if 0
             struct uixo_client* tmp_client = NULL;
             struct uixo_client* tmp_client_next = NULL;
 
@@ -200,12 +235,15 @@ int main(int argc, char* argv[])
                 }
             }
             if(FD_ISSET(socketfd, &sreadfds)) {
+#endif
                 PR_DEBUG("%s: host got data.\n", __func__);
                 if(uixo_console_handle_host() < 0) {
                     printf("%s: hose handle failed.\n", __func__);
                     continue;
                 }
+#if 0
             }
+#endif
         }
     }
     uixo_console_port_close();
