@@ -28,7 +28,7 @@ static int socketfd;
 
 static void quit_signal_handler(int a)
 {
-    send(socketfd, "exit", sizeof("exit"), 0);
+//    send(socketfd, "exit", sizeof("exit"), 0);
 	close(socketfd);
     exit(0);
 }
@@ -78,16 +78,16 @@ int main(int argc,char *argv[])
         if(string_len > MAX_UIXO_MSG_LEN) {
             printf("%s: input string too long. len=%d.\n", __func__, string_len);
         }
-        sprintf(msg.head, "%04d", string_len);
-        if(send(socketfd, (char*)&msg, string_len+UIXO_HEAD_LEN, 0) < 0) {
-		    printf("%s: send %s error\n", __func__, msg.head);
+//        sprintf(msg.head, "%04d", string_len);
+        if(send(socketfd, msg.data, string_len, 0) < 0) {
+		    printf("%s: send %s error\n", __func__, msg.data);
 	    }
     }
     {
 	    if(rttimes == 0){
-            if(send(socketfd, "exit", sizeof("exit"), 0) < 0) {
-		        printf("send error\n");
-            }
+//            if(send(socketfd, "exit", sizeof("exit"), 0) < 0) {
+//		        printf("send error\n");
+//            }
 		    close(socketfd);
 	    }
         else {
@@ -110,8 +110,8 @@ int main(int argc,char *argv[])
 
 		        printf("%s",buff);
 	        }
-            send(socketfd, "exit", sizeof("exit"), 0);
-	        close(socketfd);
+//            send(socketfd, "exit", sizeof("exit"), 0);
+            close(socketfd);
         }
     }
 

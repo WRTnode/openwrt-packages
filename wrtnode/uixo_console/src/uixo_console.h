@@ -19,7 +19,7 @@
 /*
     const define
 */
-#define MAX_UIXO_MSG_LEN       (4096)
+#define MAX_UIXO_MSG_LEN       (1024)
 #define UIXO_HEAD_LEN          (5)
 /*
 
@@ -72,11 +72,8 @@ typedef struct {
 } uixo_message_t;
 
 typedef struct {
-	struct list_head list;
-	struct list_head msghead;
-    pthread_t rx_msg_thread;
-    int rx_thread_is_run;
-    pthread_mutex_t port_mutex;
+    struct list_head list;
+    pthread_mutex_t mutex;
 
     /* uixo message head */
     char* rx_head;
@@ -164,10 +161,12 @@ int handle_port_hlport(uixo_message_t* msg);
 void handle_port_remove_port_list(void);
 int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len);
 int handle_port_fun_types(uixo_message_t* msg);
+void handle_port_init_port_list_head(void);
 int handle_msg_del_msg(uixo_message_t* msg);
 int handle_msg_del_msglist(struct list_head* msg_head);
-int handle_msg_transmit_data(uixo_port_t* port, uixo_message_t* msg);
-int handle_msg_receive_data(uixo_port_t* port);
+int handle_msg_transmit_data(uixo_port_t* port, const char* data, int len);
+int handle_msg_receive_data(uixo_port_t* port, uixo_message_t* msg);
 int handle_msg_resolve_msg(const int fd);
+int handle_msg_format_data(char* dest, const char* src);
 
 #endif

@@ -25,11 +25,13 @@ Data        :2015.08.13
 
 #include "list.h"
 #include "uixo_console.h"
+#include "thpool.h"
 
 #define MAX(a,b)  (((a) > (b))? (a): (b))
 #define MIN(x,y)  (((x) < (y))? (x): (y))
 #define PORT                         (8000)
 #define BACKLOG                      (2000)
+#define THREAD_POOL_NUM              (10)
 
 #if DugPrintg
 long uixo_console_calloc_count = 0;
@@ -38,15 +40,19 @@ long uixo_console_calloc_count = 0;
 struct uixo_client {
     struct list_head list;
     int fd;
-    pid_t pid;
+};
+
+struct uixo_client_list_head {
+    struct list_head head;
+    pthread_rwlock_t rwlock;
+    unsigned int connct_num;
 };
 
 /*
    static variables
  */
-static LIST_HEAD(uixo_client_head);
+static struct uixo_client_list_head uixo_client_head;
 static int socketfd;
-static int connct_num;
 
 /*
    static functions
@@ -98,47 +104,50 @@ static int uixo_console_host_select(void)
     return select(max_sockfds+1, &sreadfds, NULL, NULL, NULL);
 }
 
-static int uixo_console_client_remove(const int fd)
+static int uixo_console_client_remove(struct uixo_client* client)
 {
-    struct uixo_client* tmp_client = NULL;
-    list_for_each_entry(tmp_client, &uixo_client_head, list) {
-        if(fd == tmp_client->fd) {
-            list_del(&tmp_client->list);
-            close(tmp_client->fd);
-            uixo_console_free(tmp_client);
-            connct_num--;
-            PR_DEBUG("%s: client removed.\n", __func__);
-            return 0;
-        }
-    }
-    printf("%s: no client(%d) in client list, removed failed.\n", __func__, fd);
-    return -1;
-}
-
-static int uixo_console_handle_client(const int fd)
-{
-    int ret = 0;
-    ret = handle_msg_resolve_msg(fd);
-    if(ret < 0) {
-        if(UIXO_MSG_CLIENT_EXIT_MSG == ret) {
-            return uixo_console_client_remove(fd);
-        }
-        printf("%s: read invalid message.\n", __func__);
-        return -1;
-    }
+    PR_DEBUG("%s: take client head lock.\n", __func__);
+    pthread_rwlock_wrlock(&uixo_client_head.rwlock);
+    list_del(&client->list);
+    uixo_client_head.connct_num--;
+    pthread_rwlock_unlock(&uixo_client_head.rwlock);
+    PR_DEBUG("%s: release client head lock.\n", __func__);
+    close(client->fd);
+    uixo_console_free(client);
+    PR_DEBUG("%s: client removed.\n", __func__);
     return 0;
 }
 
-static int uixo_console_handle_host(void)
+static void uixo_console_handle_client(void* arg)
+{
+    struct uixo_client* client = (struct uixo_client*)arg;
+    int ret = 0;
+    printf("TIME: client(%d) start handling %d.\n", client->fd, (int)clock());
+    ret = handle_msg_resolve_msg(client->fd);
+    if(ret < 0) {
+        printf("%s: read invalid message.\n", __func__);
+    }
+    PR_DEBUG("%s: removing client(%d).\n", __func__, client->fd);
+    printf("TIME: client(%d) handled %d.\n", client->fd, (int)clock());
+    uixo_console_client_remove(client);
+}
+
+static int uixo_console_handle_host(threadpool pool)
 {
     int sc = 0;
     struct uixo_client* client = NULL;
     pid_t pid;
 
-    if(connct_num == BACKLOG) {
+    PR_DEBUG("%s: take client head lock.\n", __func__);
+    pthread_rwlock_rdlock(&uixo_client_head.rwlock);
+    if(uixo_client_head.connct_num == BACKLOG) {
+        pthread_rwlock_unlock(&uixo_client_head.rwlock);
+        PR_DEBUG("%s: release client head lock.\n", __func__);
         printf("%s: max connetction arrive, bye\n", __func__);
         return -1;
     }
+    pthread_rwlock_unlock(&uixo_client_head.rwlock);
+    PR_DEBUG("%s: release client head lock.\n", __func__);
 
     sc = accept(socketfd, NULL, NULL);
     if(sc < 0) {
@@ -146,54 +155,24 @@ static int uixo_console_handle_host(void)
         return -1;
     }
     PR_DEBUG("%s: client accept\n", __func__);
+    printf("TIME: got client(%d) %d.\n", sc, (int)clock());
     client = (struct uixo_client*)uixo_console_malloc(sizeof(*client));
     if(NULL == client) {
         printf("%s: client calloc error.\n", __func__);
     }
     INIT_LIST_HEAD(&client->list);
     client->fd = sc;
-    list_add_tail(&client->list, &uixo_client_head);
-    connct_num++;
+    PR_DEBUG("%s: take client head write lock.\n", __func__);
+    pthread_rwlock_wrlock(&uixo_client_head.rwlock);
+    list_add_tail(&client->list, &uixo_client_head.head);
+    uixo_client_head.connct_num++;
+    pthread_rwlock_unlock(&uixo_client_head.rwlock);
+    PR_DEBUG("%s: release client head lock.\n", __func__);
 
-    pid = fork();
-    if(pid < 0) {
-        printf("%s: host fork client(%d) handler error.\n", __func__, sc);
-        return -1;
-    }
-    else if(pid > 0) { /* host(parent) */
-        client->pid = pid;
-        PR_DEBUG("%s: client(%d) handler forked.\n", __func__, sc);
-        return 0;
-    }
-    else { /* client(child) */
-        if(uixo_console_handle_client(sc) < 0) {
-            printf("%s: client handle failed.\n", __func__);
-            return -1;
-        }
-        exit(0);
-    }
-}
+    thpool_add_work(pool, (void*)uixo_console_handle_client, client);
+    PR_DEBUG("%s: add client(%d) to work queue.\n", __func__, sc);
 
-static void handle_client_exit(void)
-{
-    int client_ret;
-    pid_t client_pid;
-
-    client_pid = wait(&client_ret);
-    if(0 != client_ret) {
-        printf("%s: client handler(%d) exit with error %d.\n", __func__, (int)client_pid, client_ret);
-    }
-    else {
-        struct uixo_client* tmp_client;
-
-        list_for_each_entry(tmp_client, &uixo_client_head, list) {
-            if(client_pid == tmp_client->pid) {
-                PR_DEBUG("%s: client(%d) removing.\n", __func__, tmp_client->fd)
-                uixo_console_client_remove(tmp_client->fd);
-            }
-        }
-        printf("%s: cannot find client in list. client handle pid=%d.\n", __func__, (int)client_pid);
-    }
+    return 0;
 }
 
 /*
@@ -201,13 +180,25 @@ static void handle_client_exit(void)
  */
 int main(int argc, char* argv[])
 {
+    threadpool pool;
+
+    if(3 == argc) {
+        pool = thpool_init(atoi(argv[2]));
+    }
+    else {
+        pool = thpool_init(THREAD_POOL_NUM);
+    }
+
+    INIT_LIST_HEAD(&uixo_client_head.head);
+    pthread_rwlock_init(&uixo_client_head.rwlock, NULL);
+    uixo_client_head.connct_num = 0;
+    handle_port_init_port_list_head();
+
     socketfd = uixo_console_create_socket();
     if(socketfd < 0) {
         printf("%s: Bcreate socket failed.\n", __func__);
         return -1;
     }
-
-    signal(SIGCHLD, handle_client_exit);
 
     while(1) {
         int ret = 0;
@@ -237,7 +228,7 @@ int main(int argc, char* argv[])
             if(FD_ISSET(socketfd, &sreadfds)) {
 #endif
                 PR_DEBUG("%s: host got data.\n", __func__);
-                if(uixo_console_handle_host() < 0) {
+                if(uixo_console_handle_host(pool) < 0) {
                     printf("%s: hose handle failed.\n", __func__);
                     continue;
                 }
@@ -247,5 +238,8 @@ int main(int argc, char* argv[])
         }
     }
     uixo_console_port_close();
+    thpool_wait(pool);
+    thpool_destroy(pool);
+
     return 0;
 }

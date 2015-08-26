@@ -21,7 +21,12 @@ Data        :2015.06.03
 #include "spi_mt7688.h"
 #include "uixo_console.h"
 
-static LIST_HEAD(uixo_ports_head);
+struct uixo_port_list_head {
+    struct list_head head;
+    pthread_rwlock_t rwlock;
+    unsigned int port_num;
+};
+static struct uixo_port_list_head uixo_ports_head;
 
 /* default set serial */
 static void handle_port_uixo_default_set(uixo_port_t* port, const char* port_name, const int baudrate)
@@ -113,18 +118,39 @@ static int handle_port_uixo_port_open(uixo_port_t* port)
 	return ret;
 }
 
+static uixo_port_t* find_port_on_list(const char* port_name)
+{
+    uixo_port_t* tmp_p = NULL;
+
+    PR_DEBUG("%s: take port read lock.\n", __func__);
+    pthread_rwlock_rdlock(&uixo_ports_head.rwlock);
+    list_for_each_entry(tmp_p, &uixo_ports_head.head, list) {
+        pthread_rwlock_unlock(&uixo_ports_head.rwlock);
+        PR_DEBUG("%s: release port read lock.\n", __func__);
+        if(strcmp(tmp_p->name, port_name) == 0) {
+            return tmp_p;
+        }
+        PR_DEBUG("%s: take port read lock.\n", __func__);
+        pthread_rwlock_rdlock(&uixo_ports_head.rwlock);
+    }
+    pthread_rwlock_unlock(&uixo_ports_head.rwlock);
+    PR_DEBUG("%s: release port read lock.\n", __func__);
+
+    return NULL;
+}
+
+static inline int is_port_on_list(const char* port_name)
+{
+    return (NULL==find_port_on_list(port_name))? 0: 1;
+}
+
 /* create a port */
 uixo_port_t* handle_port_mkport(const char* port_name, const int baudrate)
 {
     uixo_port_t* port = NULL;
-    uixo_port_t* tmp_p = NULL;
 
-    list_for_each_entry(tmp_p, &uixo_ports_head, list) {
-        PR_DEBUG("%s: find port(%s) on port list.\n", __func__, tmp_p->name);
-        if(strcmp(tmp_p->name, port_name) == 0) {
-            printf("%s: Port(%s) already exists\n", __func__, port_name);
-            return NULL;
-        }
+    if(is_port_on_list(port_name)) {
+        printf("%s: Port(%s) already exists\n", __func__, port_name);
     }
 
     port = (uixo_port_t*)uixo_console_calloc(1, sizeof(uixo_port_t));
@@ -133,131 +159,103 @@ uixo_port_t* handle_port_mkport(const char* port_name, const int baudrate)
         printf("%s: Failed to calloc uixo_port_t!\n", __func__);
     }
     handle_port_uixo_default_set(port, port_name, baudrate);
-    INIT_LIST_HEAD(&port->msghead);
-    pthread_mutex_init(&port->port_mutex, NULL);
+    pthread_mutex_init(&port->mutex, NULL);
     if(handle_port_uixo_port_open(port) < 0) {
         printf("%s: open port error\n", __func__);
         return NULL;
     }
-    list_add_tail(&port->list, &uixo_ports_head);
+
+    PR_DEBUG("%s: take port write lock.\n", __func__);
+    pthread_rwlock_wrlock(&uixo_ports_head.rwlock);
+    list_add_tail(&port->list, &uixo_ports_head.head);
+    pthread_rwlock_unlock(&uixo_ports_head.rwlock);
+    PR_DEBUG("%s: release port write lock.\n", __func__);
     return port;
 }
 
 /* delete a port */
 int handle_port_delport(const char* port_name)
 {
-    int has_port = 0;
-	uixo_port_t* tmp_p = NULL;
 	uixo_message_t* msg = NULL;
+    uixo_port_t* tmp_p = NULL;
 
-    list_for_each_entry(tmp_p, &uixo_ports_head, list) {
-        if(strcmp(tmp_p->name, port_name) == 0) {
-            has_port = 1;
-            break;
-        }
-    }
-    if(has_port) {
-        PR_DEBUG("%s: start to delete port = %s.\n", __func__, tmp_p->name);
-        list_del(&tmp_p->list);
-	    if(0 == strncmp(tmp_p->name, "/dev/tty", strlen("/dev/tty"))) {
-            struct posix_serial* ps = tmp_p->port;
-
-            ps->close(ps);
-            uixo_console_free(tmp_p->baudrate);
-            uixo_console_free(tmp_p->name);
-            PR_DEBUG("%s: finished delete port = %s.\n", __func__, port_name);
-	    }
-        else if(0 == strncmp(tmp_p->name, "/dev/spiS", strlen("/dev/spiS"))) {
-            struct spi_mt7688* sm = NULL;
-
-            sm->close(sm);
-            uixo_console_free(tmp_p->baudrate);
-            uixo_console_free(tmp_p->name);
-            PR_DEBUG("%s: finished delete port = %s.\n", __func__, port_name);
-        }
-        pthread_mutex_lock(&tmp_p->port_mutex);
-        PR_DEBUG("%s: take port lock.\n", __func__);
-        if((0 != tmp_p->rx_msg_thread) && (0 == pthread_kill(tmp_p->rx_msg_thread, 0))) {
-            pthread_cancel(tmp_p->rx_msg_thread);
-            PR_DEBUG("%s: send cancel to rx thread(%d)\n", __func__, (int)tmp_p->rx_msg_thread);
-            pthread_join(tmp_p->rx_msg_thread, NULL);
-            PR_DEBUG("%s: rx thread(%d) exited.\n", __func__, (int)tmp_p->rx_msg_thread);
-        }
-        handle_msg_del_msglist(&tmp_p->msghead);
-        pthread_mutex_unlock(&tmp_p->port_mutex);
-        PR_DEBUG("%s: release port lock.\n", __func__);
-        pthread_mutex_destroy(&tmp_p->port_mutex);
-        uixo_console_free(tmp_p);
-        return 0;
-    }
-    else {
+    if((tmp_p=find_port_on_list(port_name)) == NULL) {
         printf("%s: no port(%s) on list. delport error.\n", __func__, port_name);
         return -1;
     }
+
+    PR_DEBUG("%s: start to delete port = %s.\n", __func__, tmp_p->name);
+    PR_DEBUG("%s: take port write lock.\n", __func__);
+    pthread_rwlock_wrlock(&uixo_ports_head.rwlock);
+    list_del(&tmp_p->list);
+    pthread_rwlock_unlock(&uixo_ports_head.rwlock);
+    PR_DEBUG("%s: release port write lock.\n", __func__);
+    if(0 == strncmp(tmp_p->name, "/dev/tty", strlen("/dev/tty"))) {
+        struct posix_serial* ps = tmp_p->port;
+
+        ps->close(ps);
+        uixo_console_free(tmp_p->baudrate);
+        uixo_console_free(tmp_p->name);
+        PR_DEBUG("%s: finished delete port = %s.\n", __func__, port_name);
+    }
+    else if(0 == strncmp(tmp_p->name, "/dev/spiS", strlen("/dev/spiS"))) {
+        struct spi_mt7688* sm = NULL;
+
+        sm->close(sm);
+        uixo_console_free(tmp_p->baudrate);
+        uixo_console_free(tmp_p->name);
+        PR_DEBUG("%s: finished delete port = %s.\n", __func__, port_name);
+    }
+    pthread_mutex_destroy(&tmp_p->mutex);
+    uixo_console_free(tmp_p);
+    return 0;
 }
 
 int handle_port_hlport(uixo_message_t* msg)
 {
     uixo_port_t* port = NULL;
-    list_for_each_entry(port, &uixo_ports_head, list) {
-        if(strcmp(port->name, msg->port_name) == 0) {
-            PR_DEBUG("%s: find port = %s.\n", __func__, msg->port_name);
-            if(msg->rttimes <= UIXO_MSG_DELET_MSG) {
-                PR_DEBUG("%s: del msg\n", __func__);
-                if(handle_msg_del_msg(msg) < 0) {
-                    printf("%s: port(%s) delet message error\n", __func__, port->name);
-                    return -1;
-                }
-                return 0;
-            }
-            else {
-                if(handle_msg_transmit_data(port, msg) < 0) {
-                    printf("%s: port(%s) transmit data fail.\n", __func__, port->name);
-                    return -1;
-                }
-                if(msg->rttimes != 0) {
-                    uixo_message_t* msg_bak = NULL;
-                    msg_bak = (uixo_message_t*)uixo_console_malloc(sizeof(uixo_message_t));
-                    if(NULL == msg_bak) {
-                        printf("%s: rttimes>0, but calloc copy message error.\n", __func__);
-                        return -1;
-                    }
-                    memcpy(msg_bak, msg, sizeof(uixo_message_t));
-                    PR_DEBUG("%s: need to receive data, add to message list\n", __func__);
-                    pthread_mutex_lock(&port->port_mutex);
-                    PR_DEBUG("%s: take port lock.\n", __func__);
-                    list_add_tail(&msg_bak->list, &port->msghead);
-                    if(!port->rx_thread_is_run) {
-                        pthread_mutex_unlock(&port->port_mutex);
-                        PR_DEBUG("%s: release port lock.\n", __func__);
-                        if(0 != port->rx_msg_thread) {
-                            pthread_join(port->rx_msg_thread, NULL);
-                            PR_DEBUG("%s: thread(%d) exit.\n", __func__, (int)port->rx_msg_thread);
-                        }
-                        if(handle_msg_receive_data(port) < 0) {
-                            printf("%s: port(%s) receive data fail.\n", __func__, port->name);
-                            return -1;
-                        }
-                        PR_DEBUG("%s: client(%d) open a rx thread for port(%s).\n",
-                                 __func__, msg_bak->socketfd, port->name);
-                    }
-                    else {
-                        pthread_mutex_unlock(&port->port_mutex);
-                        PR_DEBUG("%s: release port lock.\n", __func__);
-                    }
-                }
-                return 0;
-            }
+    char tx_data[msg->len+1];
+    int data_len = 0;
+
+    if((port=find_port_on_list(msg->port_name)) == NULL) {
+        printf("%s: no port(%s) on list. hlport error.\n", __func__, port->name);
+        return -1;
+    }
+
+    data_len = handle_msg_format_data(tx_data, msg->data);
+    if(data_len <= 0) {
+        printf("%s: data len = %d\n", __func__, data_len);
+        return -1;
+    }
+    PR_DEBUG("%s: TX=%s, LEN=%d\n", __func__, tx_data, data_len);
+
+    PR_DEBUG("%s: take port(%s) mutex.\n", __func__, port->name);
+    pthread_mutex_lock(&port->mutex);
+    if(handle_msg_transmit_data(port, tx_data, data_len) < 0) {
+        printf("%s: port(%s) transmit data fail.\n", __func__, port->name);
+        return -1;
+    }
+    if(msg->rttimes != 0) {
+        if(handle_msg_receive_data(port, msg) < 0) {
+            printf("%s: port(%s) receive data fail.\n", __func__, port->name);
+            return -1;
         }
     }
-    printf("%s: the port(%s) does not exist\n", __func__, msg->port_name);
-    return -1;
+    pthread_mutex_unlock(&port->mutex);
+    PR_DEBUG("%s: release port(%s) mutex.\n", __func__, port->name);
+    return 0;
 }
 
 int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
 {
     int readn = 0;
     char* ptr = rx_data;
+
+    struct posix_serial* ps = port->port;
+    readn = ps->read(ps, rx_data, 4);
+    ps->flush_input(ps);
+    return readn;
+
 
     if((NULL == port) || (NULL == rx_data)) {
         printf("%s: input NULL.\n", __func__);
@@ -279,6 +277,7 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
                 ptr++;
                 readn++;
                 if('\n' == ch) {
+                    *ptr = '\0';
                     return readn;
                 }
             }
@@ -302,6 +301,7 @@ int handle_port_read_line(uixo_port_t* port, char* rx_data, const int len)
                 ptr++;
                 readn++;
                 if('\n' == ch) {
+                    *ptr = '\0';
                     return readn;
                 }
             }
@@ -324,7 +324,11 @@ void handle_port_remove_port_list(void)
 {
 	uixo_port_t* tmp_p = NULL;
 
-    list_for_each_entry(tmp_p, &uixo_ports_head, list) {
+    PR_DEBUG("%s: take port write lock.\n", __func__);
+    pthread_rwlock_wrlock(&uixo_ports_head.rwlock);
+    list_for_each_entry(tmp_p, &uixo_ports_head.head, list) {
+        pthread_rwlock_unlock(&uixo_ports_head.rwlock);
+        PR_DEBUG("%s: release port write lock.\n", __func__);
         PR_DEBUG("%s: start to delete port = %s.\n", __func__, tmp_p->name);
         list_del(&tmp_p->list);
         if(0 == strncmp(tmp_p->name, "/dev/tty", strlen("/dev/tty"))) {
@@ -341,20 +345,23 @@ void handle_port_remove_port_list(void)
             uixo_console_free(tmp_p->baudrate);
             uixo_console_free(tmp_p->name);
         }
-        handle_msg_del_msglist(&tmp_p->msghead);
         uixo_console_free(tmp_p);
+        PR_DEBUG("%s: take port write lock.\n", __func__);
+        pthread_rwlock_wrlock(&uixo_ports_head.rwlock);
     }
+    pthread_rwlock_unlock(&uixo_ports_head.rwlock);
+    PR_DEBUG("%s: release port write lock.\n", __func__);
 }
 
 int handle_port_fun_types(uixo_message_t* msg)
 {
-	/*create a port*/
-	if(strcmp(msg->fn_name, "mkport") == 0) {
-		PR_DEBUG("%s: mkport, name=%s, baudrate = %d\n", __func__, msg->port_name, msg->port_baudrate);
-		if(NULL == handle_port_mkport(msg->port_name, msg->port_baudrate)) {
-			printf("%s: mkport error.\n", __func__);
+    /*create a port*/
+    if(strcmp(msg->fn_name, "mkport") == 0) {
+        PR_DEBUG("%s: mkport, name=%s, baudrate = %d\n", __func__, msg->port_name, msg->port_baudrate);
+        if(NULL == handle_port_mkport(msg->port_name, msg->port_baudrate)) {
+            printf("%s: mkport error.\n", __func__);
             return -1;
-		}
+        }
         return 0;
     }
     /* delete a port */
@@ -378,4 +385,11 @@ int handle_port_fun_types(uixo_message_t* msg)
         printf("%s: invalid message fn_name = %s.\n",__func__, msg->fn_name);
         return -1;
     }
+}
+
+void handle_port_init_port_list_head(void)
+{
+    INIT_LIST_HEAD(&uixo_ports_head.head);
+    pthread_rwlock_init(&uixo_ports_head.rwlock, NULL);
+    uixo_ports_head.port_num = 0;
 }
