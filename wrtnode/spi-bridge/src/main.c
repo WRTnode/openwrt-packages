@@ -56,8 +56,6 @@ static inline unsigned char read_status(int fd)
     unsigned char ch = 0;
     ioctl(fd, SPI_MCU_READ_STATUS, &ch);
     usleep(SPI_MCU_READ_DELAY_US);
-    ioctl(fd, SPI_MCU_READ_STATUS, &ch);
-    usleep(SPI_MCU_READ_DELAY_US);
 
     return ch;
 }
@@ -67,8 +65,6 @@ static inline unsigned char read_len(int fd)
     unsigned char ch = 0;
     ioctl(fd, SPI_MCU_READ_LEN, &ch);
     usleep(SPI_MCU_READ_DELAY_US);
-    ioctl(fd, SPI_MCU_READ_LEN, &ch);
-    usleep(SPI_MCU_READ_DELAY_US);
 
     return ch;
 }
@@ -76,8 +72,6 @@ static inline unsigned char read_len(int fd)
 static inline unsigned char read_ch(int fd)
 {
     unsigned char ch = 0;
-    ioctl(fd, SPI_MCU_READ, &ch);
-    usleep(SPI_MCU_READ_DELAY_US);
     ioctl(fd, SPI_MCU_READ, &ch);
     usleep(SPI_MCU_READ_DELAY_US);
 
