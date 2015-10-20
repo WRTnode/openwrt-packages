@@ -7,6 +7,8 @@ INSTFROUP = root
 
 OBJS = main.o
 
+LDFLAGS+=-lpthread
+
 all: $(PROGS)
 $(PROGS): $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@

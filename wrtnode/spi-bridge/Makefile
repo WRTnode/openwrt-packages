@@ -20,6 +20,7 @@ define Package/spi-bridge
   SECTION:=spi-bridge
   CATEGORY:=WRTnode
   TITLE:=WRTnode2r bridge between 7688 and stm32.
+	DEPENDS:=+libpthread
 endef
 
 define Package/spi-bridge/description
