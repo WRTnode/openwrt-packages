@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
     int is_force = 0;
     unsigned char buf;
 
-    if(argc == 2) {
+    if(argc == 1) {
         fd = open("/dev/spiS0", O_RDONLY);
         if (fd <= 0) {
             fprintf(stderr, "Please insmod module spi_drv.o!\n");
