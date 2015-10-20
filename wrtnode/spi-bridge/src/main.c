@@ -6,6 +6,8 @@
 #include <pthread.h>
 #include <signal.h>
 
+#define DEBUG
+
 #ifdef DEBUG
 #define DEBUG_PRINT        printf
 #else
@@ -192,8 +194,9 @@ static void* read_stdin_handler(void* arg)
 
 static void spi_console_exit(int sig)
 {
-    pthread_kill(read_mcu_tidp, SIGINT);
-    pthread_kill(read_stdin_tidp, SIGINT);
+    DEBUG_PRINT("Get SIGINT.\n");
+    pthread_cancel(read_mcu_tidp);
+    pthread_cancel(read_stdin_tidp);
 }
 
 int main(int argc, char* argv[])
