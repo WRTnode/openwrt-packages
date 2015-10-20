@@ -47,9 +47,9 @@ char usage[] =  "spicmd [read/write] [-f] WRTnode2r stm32 data(if write)\n"\
                 "  spicmd read \n"\
                 "  spicmd write [string]\n"\
                 "  spicmd status \n"\
-                "-f Force read/write. Do not block"\
+                "-f Force read/write. Do not block\n"
                 "NOTE -- read/write/status value are in string\n"\
-                "spicmd :Open spiconsole.\n";
+                "spicmd\n  Open spiconsole.\n";
 
 #define SPI_MCU_READ_DELAY_US   (200)
 #define SPI_MCU_WRITE_DELAY_US  (200)
