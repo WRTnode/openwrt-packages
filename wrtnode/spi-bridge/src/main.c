@@ -6,8 +6,6 @@
 #include <pthread.h>
 #include <signal.h>
 
-#define DEBUG
-
 #ifdef DEBUG
 #define DEBUG_PRINT        printf
 #else
@@ -163,6 +161,10 @@ static void* read_stdin_handler(void* arg)
         char* data_in = NULL;
         data_in = fgets(data, SPI_FRAME_MAX_LEN, stdin);
         if(NULL != data_in) {
+            if(strncmp(data_in, "exit", 4) == 0) {
+                pthread_cancel(read_mcu_tidp);
+                pthread_exit(NULL);
+            }
             do {
                 status = read_status(fd);
                 DEBUG_PRINT("write status = 0x%x\n", status);
