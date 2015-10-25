@@ -40,16 +40,14 @@ typedef struct spi_write_data {
 #define SPI_STATUS_OK                        (0x80)
 
 
-#define SPI_MCU_READ_DELAY_US   (200)
-#define SPI_MCU_WRITE_DELAY_US  (200)
-#define SPI_MCU_CHECK_STATUS_DELAY_US   (100000)
+#define SPI_MCU_READ_DELAY_US   (20)
+#define SPI_MCU_WRITE_DELAY_US  (20)
+#define SPI_MCU_CHECK_STATUS_DELAY_US   (1000)
 
 
 static inline unsigned char read_status(int fd)
 {
 	unsigned char ch = 0;
-	ioctl(fd, SPI_MCU_READ_STATUS, &ch);
-	usleep(SPI_MCU_READ_DELAY_US);
 	ioctl(fd, SPI_MCU_READ_STATUS, &ch);
 	usleep(SPI_MCU_READ_DELAY_US);
 
@@ -61,8 +59,6 @@ static inline unsigned char read_len(int fd)
 	unsigned char ch = 0;
 	ioctl(fd, SPI_MCU_READ_LEN, &ch);
 	usleep(SPI_MCU_READ_DELAY_US);
-	ioctl(fd, SPI_MCU_READ_LEN, &ch);
-	usleep(SPI_MCU_READ_DELAY_US);
 
 	return ch;
 }
@@ -70,8 +66,6 @@ static inline unsigned char read_len(int fd)
 static inline unsigned char read_ch(int fd)
 {
 	unsigned char ch = 0;
-	ioctl(fd, SPI_MCU_READ, &ch);
-	usleep(SPI_MCU_READ_DELAY_US);
 	ioctl(fd, SPI_MCU_READ, &ch);
 	usleep(SPI_MCU_READ_DELAY_US);
 
