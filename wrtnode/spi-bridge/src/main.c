@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
 
 #ifdef DEBUG
 #define DEBUG_PRINT        printf
@@ -27,6 +29,8 @@ typedef struct spi_write_data {
 #define RT2880_SPI_START       (2)
 #define RT2880_SPI_WRITE       (3)
 
+#define SPI_FRAME_MAX_LEN      (255)
+
 #define SPI_MCU_READ           (0x01)
 #define SPI_MCU_READ_LEN       (0x04)
 #define SPI_MCU_WRITE          (0x10)
@@ -38,13 +42,14 @@ typedef struct spi_write_data {
 #define SPI_STATUS_7688_WRITE_TO_STM32_NF    (0<<1)
 #define SPI_STATUS_OK                        (0x80)
 
-char usage[] =  "spicmd read/write [-f] WRTnode2r stm32 data(if write)\n"\
+char usage[] =  "spicmd [read/write] [-f] WRTnode2r stm32 data(if write)\n"\
                 "spicmd format:\n"\
                 "  spicmd read \n"\
                 "  spicmd write [string]\n"\
                 "  spicmd status \n"\
-                "-f Force read/write. Do not block"\
-                "NOTE -- read/write/status value are in string\n";
+                "-f Force read/write. Do not block\n"
+                "NOTE -- read/write/status value are in string\n"\
+                "spicmd\n  Open spiconsole.\n";
 
 #define SPI_MCU_READ_DELAY_US   (200)
 #define SPI_MCU_WRITE_DELAY_US  (200)
@@ -90,15 +95,145 @@ static inline void put_len(int fd, unsigned char len)
     usleep(SPI_MCU_WRITE_DELAY_US);
 }
 
+static pthread_t read_mcu_tidp;
+static pthread_t read_stdin_tidp;
+static pthread_mutex_t spi_mutex;
+
+static void* read_mcu_handler(void* arg)
+{
+    int fd = *(int*)arg;
+    unsigned char len = 0;
+    unsigned char status = SPI_STATUS_OK;
+    char* data = NULL;
+    int i = 0;
+
+    while(1) {
+        do {
+            pthread_mutex_lock(&spi_mutex);
+            status = read_status(fd);
+            pthread_mutex_unlock(&spi_mutex);
+            DEBUG_PRINT("read status = 0x%x\n", status);
+            if(status & (SPI_STATUS_OK) &&
+              (!(status & SPI_STATUS_7688_READ_FROM_STM32_E))) {
+                break;
+            }
+            usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
+        }while(1);
+        pthread_mutex_lock(&spi_mutex);
+        len = read_len(fd);
+        pthread_mutex_unlock(&spi_mutex);
+        DEBUG_PRINT("read len = %d\n", len);
+        if(0 == len) {
+            fprintf(stderr, "read length is 0.\n");
+            pthread_exit(NULL);
+        }
+        if(NULL == (data = (char*)malloc(len*sizeof(char)))) {
+            fprintf(stderr, "read data malloc error!\n");
+            pthread_exit(NULL);
+        }
+        pthread_mutex_lock(&spi_mutex);
+        for(i=0; i<len; i++) {
+            data[i] = read_ch(fd);
+            DEBUG_PRINT("read data[%d] = 0x%x %c\n", i, data[i] , data[i]);
+        }
+        pthread_mutex_unlock(&spi_mutex);
+        printf("%s\n",data);
+        free(data);
+        data = NULL;
+    }
+    pthread_exit(NULL);
+}
+
+static void* read_stdin_handler(void* arg)
+{
+    int fd = *(int*)arg;
+    unsigned char len = 0;
+    unsigned char status = SPI_STATUS_OK;
+    char* data = NULL;
+    int i = 0;
+
+    data = (char*)malloc(SPI_FRAME_MAX_LEN*sizeof(char));
+    if(NULL == data) {
+        fprintf(stderr, "failed to malloc spi write buffer.\n");
+        pthread_exit(NULL);
+    }
+    while(1) {
+        char* data_in = NULL;
+        data_in = fgets(data, SPI_FRAME_MAX_LEN, stdin);
+        if(NULL != data_in) {
+            if(strncmp(data_in, "exit", 4) == 0) {
+                pthread_cancel(read_mcu_tidp);
+                pthread_exit(NULL);
+            }
+            do {
+                status = read_status(fd);
+                DEBUG_PRINT("write status = 0x%x\n", status);
+                if((status & SPI_STATUS_OK) &&
+                  (!(status & SPI_STATUS_7688_WRITE_TO_STM32_F))) {
+                    break;
+                }
+                usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
+            } while(1);
+            len = strlen(data_in);
+            if(0 == len) {
+                fprintf(stderr, "write length is 0.\n");
+                pthread_exit(NULL);
+            }
+            put_len(fd, len);
+            for(i=0; i<len; i++) {
+                put_ch(fd, data_in[i]);
+                DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data_in[i] , data_in[i]);
+            }
+        }
+        else {
+            fprintf(stderr, "fgets error.\n");
+        }
+        data_in = NULL;
+        len = 0;
+    }
+    pthread_exit(NULL);
+}
+
+static void spi_console_exit(int sig)
+{
+    DEBUG_PRINT("Get SIGINT.\n");
+    pthread_cancel(read_mcu_tidp);
+    pthread_cancel(read_stdin_tidp);
+}
+
 int main(int argc, char* argv[])
 {
     int chk_match, size, fd;
     int is_force = 0;
     unsigned char buf;
 
-    if (argc < 2) {
-        fprintf(stderr, "Usage:\n%s\n", usage);
-        return -1;
+    if(argc == 1) {
+        fd = open("/dev/spiS0", O_RDONLY);
+        if (fd <= 0) {
+            fprintf(stderr, "Please insmod module spi_drv.o!\n");
+            return -1;
+        }
+        DEBUG_PRINT("Start SPI console.\n");
+        signal(SIGINT, spi_console_exit);
+        if(pthread_mutex_init(&spi_mutex, NULL) < 0) {
+            fprintf(stderr, "Init thread mutex error.\n");
+            return -1;
+        }
+        if(pthread_create(&read_mcu_tidp, NULL, read_mcu_handler, &fd) < 0) {
+            fprintf(stderr, "Create read mcu thread failed.\n");
+            return -1;
+        }
+        if(pthread_create(&read_stdin_tidp, NULL, read_stdin_handler, &fd) < 0) {
+            fprintf(stderr, "Create write mcu thread failed.\n");
+            return -1;
+        }
+
+        /* wait SIGINT signal to exit */
+        pthread_join(read_mcu_tidp, NULL);
+        pthread_join(read_stdin_tidp, NULL);
+        printf("SPI console exit.\n");
+        close(fd);
+        return 0;
     }
 
     if ((argc > 2) && (0 == strcmp(argv[2], RT2880_SPI_FORCE_STR))) {
@@ -138,7 +273,7 @@ int main(int argc, char* argv[])
                     do {
                         status = read_status(fd);
                         DEBUG_PRINT("read status = 0x%x\n", status);
-                        if(status & (SPI_STATUS_OK) && 
+                        if(status & (SPI_STATUS_OK) &&
                           (!(status & SPI_STATUS_7688_READ_FROM_STM32_E))) {
                             break;
                         }
@@ -205,7 +340,7 @@ int main(int argc, char* argv[])
                 }
                 put_len(fd, len);
                 for(i=0; i<len; i++) {
-                    put_ch(fd, data[i]); 
+                    put_ch(fd, data[i]);
                     DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data[i] , data[i]);
                 }
                 close(fd);
@@ -259,7 +394,7 @@ int main(int argc, char* argv[])
                 }
                 put_len(fd, len);
                 for(i=0; i<len; i++) {
-                    put_ch(fd, data[i]); 
+                    put_ch(fd, data[i]);
                     DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data[i] , data[i]);
                 }
                 close(fd);
