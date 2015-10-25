@@ -2,8 +2,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/types.h>  
-#include <sys/stat.h>   
+#include <sys/types.h>
+#include <sys/stat.h>
 
 char usage[] =  "stm32-flash \n" \
 				 " format: command \n" \
@@ -44,14 +44,14 @@ int main(int argc,char* argv[]){
 			return -1;
 		}
 		if(strcmp(argv[1],"write")== 0){
-			strcpy(readcmd,"read");			
-			strcpy(startcmd,"restart");			
+			strcpy(readcmd,"read");
+			strcpy(startcmd,"restart");
 		}
 		else
-			strcpy(readcmd,"read");			
+			strcpy(readcmd,"read");
 	}
 	else
-		strcpy(startcmd,"restart");			
+		strcpy(startcmd,"restart");
 
 	if(strcmp(argv[1],"write") == 0){
 		printf("write ...\n");
@@ -77,7 +77,7 @@ int main(int argc,char* argv[]){
 			data[4] = cmd;
 
 			for(i=5; i<=7; i++){
-				data[i] = (addr >> ((7-i)*8) & 0xff);	
+				data[i] = (addr >> ((7-i)*8) & 0xff);
 			}
 			chk = 0;
 			memcpy(data + 8,rbuf,r_size);
@@ -98,7 +98,7 @@ int main(int argc,char* argv[]){
 			ret = WRTnode2r_spi_read(data, 0);
 			if(ret < 0){
 				printf("read fail\n");
-			}		
+			}
 			memset(rbuf,0,100);
 			memset(data,0,100);
 
@@ -110,16 +110,15 @@ int main(int argc,char* argv[]){
 				uintf("%d\%\n",a * 5);
 				fflush(stdout);
 				a++;
-			}	
+			}
 #endif
 			a++;
 			if(a%5 == 0)
 				printf("#");
 			fflush(stdout);
-			
 		}
 	}
-	
+
 	if(strcmp(readcmd,"read") == 0){
 		printf("check ...\n");
 		addr = 0x1000;
@@ -133,7 +132,7 @@ int main(int argc,char* argv[]){
 			data[3] = 2;
 			data[4] = cmd;
 			for(i=5; i<=7; i++){
-				data[i] = (addr >> ((7-i)*8) & 0xff);	
+				data[i] = (addr >> ((7-i)*8) & 0xff);
 			}
 			chk = 0;
 			for(i=4;i<=7;i++){
@@ -154,9 +153,9 @@ int main(int argc,char* argv[]){
 			ret = WRTnode2r_spi_read(data,0);
 			if(ret < 0){
 				printf("read fail\n");
-			}		
+			}
 			if(strncmp(rbuf,data+8,r_size) == 0){
-				//printf("64byte data check ok!\n");	
+				//printf("64byte data check ok!\n");
 			}
 			addr += r_size;
 			memset(data,0,100);
@@ -168,7 +167,6 @@ int main(int argc,char* argv[]){
 			fflush(stdout);
 
 		}
-
 	}
 	if(strcmp(startcmd,"restart") == 0){
 		printf("restart ...\n");

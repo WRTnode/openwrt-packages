@@ -49,7 +49,7 @@ static inline unsigned char read_status(int fd)
 {
 	unsigned char ch = 0;
 	ioctl(fd, SPI_MCU_READ_STATUS, &ch);
-	usleep(SPI_MCU_READ_DELAY_US);	
+	usleep(SPI_MCU_READ_DELAY_US);
 	ioctl(fd, SPI_MCU_READ_STATUS, &ch);
 	usleep(SPI_MCU_READ_DELAY_US);
 
@@ -121,7 +121,7 @@ size_t WRTnode2r_spi_read(char * buf , int is_force)
 		do {
 			status = read_status(fd);
 			DEBUG_PRINT("read status = 0x%x\n", status);
-			if(status & (SPI_STATUS_OK) && 
+			if(status & (SPI_STATUS_OK) &&
 					(!(status & SPI_STATUS_7688_READ_FROM_STM32_E))) {
 				break;
 			}
@@ -130,12 +130,12 @@ size_t WRTnode2r_spi_read(char * buf , int is_force)
 	}
 	len = read_len(fd);
 	DEBUG_PRINT("read len = %d\n", len);
-	
+
 	if(0 == len) {
 		fprintf(stderr, "read length is 0.\n");
 		goto err;
 	}
-	
+
 	for(i=0; i<len; i++) {
 		buf[i] = read_ch(fd);
 	}
@@ -176,7 +176,7 @@ int WRTnode2r_spi_start(void) {
 	}
 	put_len(fd, len);
 	for(i=0; i<len; i++) {
-		put_ch(fd, data[i]); 
+		put_ch(fd, data[i]);
 		DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data[i] , data[i]);
 	}
 	close(fd);
@@ -227,12 +227,12 @@ size_t WRTnode2r_spi_write(char* data, int len, int is_force)
 	}
 	put_len(fd, len);
 	for(i=0; i<len; i++) {
-		put_ch(fd, data[i]); 
+		put_ch(fd, data[i]);
 		DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data[i] , data[i]);
 	}
 	close(fd);
 	return 0;
-	
+
 err:
 	close(fd);
 	return -1;
