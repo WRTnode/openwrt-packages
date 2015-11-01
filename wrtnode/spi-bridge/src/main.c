@@ -111,36 +111,36 @@ static void* read_mcu_handler(void* arg)
         do {
             pthread_mutex_lock(&spi_mutex);
             status = read_status(fd);
-            pthread_mutex_unlock(&spi_mutex);
             DEBUG_PRINT("read status = 0x%x\n", status);
             if(status & (SPI_STATUS_OK) &&
               (!(status & SPI_STATUS_7688_READ_FROM_STM32_E))) {
                 break;
             }
+            pthread_mutex_unlock(&spi_mutex);
             usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
         }while(1);
-        pthread_mutex_lock(&spi_mutex);
         len = read_len(fd);
-        pthread_mutex_unlock(&spi_mutex);
         DEBUG_PRINT("read len = %d\n", len);
         if(0 == len) {
             fprintf(stderr, "read length is 0.\n");
-            pthread_exit(NULL);
+	    goto OUT;
         }
         if(NULL == (data = (char*)malloc(len*sizeof(char)))) {
             fprintf(stderr, "read data malloc error!\n");
-            pthread_exit(NULL);
+	    goto OUT;
         }
-        pthread_mutex_lock(&spi_mutex);
         for(i=0; i<len; i++) {
             data[i] = read_ch(fd);
             DEBUG_PRINT("read data[%d] = 0x%x %c\n", i, data[i] , data[i]);
         }
         pthread_mutex_unlock(&spi_mutex);
-        printf("%s\n",data);
+        printf("%s",data);
         free(data);
         data = NULL;
     }
+
+OUT:
+    pthread_mutex_unlock(&spi_mutex);
     pthread_exit(NULL);
 }
 
@@ -166,24 +166,27 @@ static void* read_stdin_handler(void* arg)
                 pthread_exit(NULL);
             }
             do {
+            	pthread_mutex_lock(&spi_mutex);
                 status = read_status(fd);
                 DEBUG_PRINT("write status = 0x%x\n", status);
                 if((status & SPI_STATUS_OK) &&
                   (!(status & SPI_STATUS_7688_WRITE_TO_STM32_F))) {
                     break;
                 }
+            	pthread_mutex_unlock(&spi_mutex);
                 usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
             } while(1);
             len = strlen(data_in);
             if(0 == len) {
                 fprintf(stderr, "write length is 0.\n");
-                pthread_exit(NULL);
+		goto OUT;
             }
             put_len(fd, len);
             for(i=0; i<len; i++) {
                 put_ch(fd, data_in[i]);
                 DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data_in[i] , data_in[i]);
             }
+            pthread_mutex_unlock(&spi_mutex);
         }
         else {
             fprintf(stderr, "fgets error.\n");
@@ -191,6 +194,9 @@ static void* read_stdin_handler(void* arg)
         data_in = NULL;
         len = 0;
     }
+
+OUT:
+    pthread_mutex_unlock(&spi_mutex);
     pthread_exit(NULL);
 }
 
@@ -392,11 +398,12 @@ int main(int argc, char* argv[])
                     fprintf(stderr, "write length is 0.\n");
                     return -1;
                 }
-                put_len(fd, len);
+                put_len(fd, len+1); //add \n for msh
                 for(i=0; i<len; i++) {
                     put_ch(fd, data[i]);
                     DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data[i] , data[i]);
                 }
+		put_ch(fd, '\n');
                 close(fd);
             }
             else {
