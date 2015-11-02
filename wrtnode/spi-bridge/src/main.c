@@ -99,17 +99,21 @@ static pthread_t read_mcu_tidp;
 static pthread_t read_stdin_tidp;
 static pthread_mutex_t spi_mutex;
 
+/* *
+ * NOTICE: If 7688 read one byte from STM32, It will got right byte in next read cmd.
+ * */
 static void* read_mcu_handler(void* arg)
 {
     int fd = *(int*)arg;
     unsigned char len = 0;
-    unsigned char status = SPI_STATUS_OK;
     char* data = NULL;
     int i = 0;
 
     while(1) {
         do {
+            unsigned char status = SPI_STATUS_OK;
             pthread_mutex_lock(&spi_mutex);
+	    read_status(fd); /* dummy read */
             status = read_status(fd);
             DEBUG_PRINT("read status = 0x%x\n", status);
             if(status & (SPI_STATUS_OK) &&
@@ -119,16 +123,20 @@ static void* read_mcu_handler(void* arg)
             pthread_mutex_unlock(&spi_mutex);
             usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
         }while(1);
-        len = read_len(fd);
-        DEBUG_PRINT("read len = %d\n", len);
-        if(0 == len) {
-            fprintf(stderr, "read length is 0.\n");
-	    goto OUT;
+        {
+            read_len(fd);  /* dummy read */
+            len = read_len(fd);
+            DEBUG_PRINT("read len = %d\n", len);
+            if(0 == len) {
+                fprintf(stderr, "read length is 0.\n");
+	        goto OUT;
+            }
         }
         if(NULL == (data = (char*)malloc(len*sizeof(char)))) {
             fprintf(stderr, "read data malloc error!\n");
 	    goto OUT;
         }
+        read_ch(fd); /* dummy read */
         for(i=0; i<len; i++) {
             data[i] = read_ch(fd);
             DEBUG_PRINT("read data[%d] = 0x%x %c\n", i, data[i] , data[i]);
@@ -167,6 +175,7 @@ static void* read_stdin_handler(void* arg)
             }
             do {
             	pthread_mutex_lock(&spi_mutex);
+                read_status(fd); /* dummy read */
                 status = read_status(fd);
                 DEBUG_PRINT("write status = 0x%x\n", status);
                 if((status & SPI_STATUS_OK) &&
@@ -264,6 +273,7 @@ int main(int argc, char* argv[])
                     return -1;
                 }
                 if (is_force) {
+                    read_status(fd); /* dummy read */
                     status = read_status(fd);
                     DEBUG_PRINT("read status = 0x%x\n", status);
                     if(!(status & SPI_STATUS_OK)) {
@@ -277,6 +287,7 @@ int main(int argc, char* argv[])
                 }
                 else {
                     do {
+                        read_status(fd); /* dummy read */
                         status = read_status(fd);
                         DEBUG_PRINT("read status = 0x%x\n", status);
                         if(status & (SPI_STATUS_OK) &&
@@ -286,6 +297,7 @@ int main(int argc, char* argv[])
                         usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
                     }while(1);
                 }
+                read_len(fd); /* dummy read */
                 len = read_len(fd);
                 DEBUG_PRINT("read len = %d\n", len);
                 if(0 == len) {
@@ -296,6 +308,7 @@ int main(int argc, char* argv[])
                     fprintf(stderr, "read data malloc error!\n");
                     return -1;
                 }
+                read_ch(fd); /* dummy read */
                 for(i=0; i<len; i++) {
                     data[i] = read_ch(fd);
                     DEBUG_PRINT("read data[%d] = 0x%x %c\n", i, data[i] , data[i]);
@@ -311,6 +324,7 @@ int main(int argc, char* argv[])
                     fprintf(stderr, "Please insmod module spi_drv.o!\n");
                     return -1;
                 }
+                read_status(fd); /* dummy read */
                 status = read_status(fd);
                 if(status & SPI_STATUS_OK) {
                     if(status & SPI_STATUS_7688_READ_FROM_STM32_E) {
@@ -370,6 +384,7 @@ int main(int argc, char* argv[])
                 }
 
                 if (is_force) {
+                    read_status(fd); /* dummy read */
                     status = read_status(fd);
                     DEBUG_PRINT("write status = 0x%x\n", status);
                     if(status & SPI_STATUS_OK) {
@@ -384,6 +399,7 @@ int main(int argc, char* argv[])
                 }
                 else {
                     do {
+                        read_status(fd); /* dummy read */
                         status = read_status(fd);
                         DEBUG_PRINT("write status = 0x%x\n", status);
                         if((status & SPI_STATUS_OK) &&
