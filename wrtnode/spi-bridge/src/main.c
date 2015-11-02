@@ -132,7 +132,7 @@ static void* read_mcu_handler(void* arg)
 	        goto OUT;
             }
         }
-        if(NULL == (data = (char*)malloc(len*sizeof(char)))) {
+        if(NULL == (data = (char*)malloc((len+1)*sizeof(char)))) {
             fprintf(stderr, "read data malloc error!\n");
 	    goto OUT;
         }
@@ -141,6 +141,7 @@ static void* read_mcu_handler(void* arg)
             data[i] = read_ch(fd);
             DEBUG_PRINT("read data[%d] = 0x%x %c\n", i, data[i] , data[i]);
         }
+        data[len] = '\0';
         pthread_mutex_unlock(&spi_mutex);
         printf("%s",data);
         free(data);
