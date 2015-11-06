@@ -41,6 +41,7 @@ endef
 define Package/WRTnode2r-stm32/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/WRTnode2r-stm32 $(1)/usr/bin/
+	$(INSTALL_BIN) ./files/usr/bin/flash-stm32 $(1)/usr/bin/
 endef
 
 $(eval $(call BuildPackage,WRTnode2r-stm32))

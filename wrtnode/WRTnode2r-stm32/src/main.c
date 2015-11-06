@@ -29,8 +29,8 @@ int main(int argc,char* argv[]){
 	char cmd = 'w';
 	unsigned char chk = 0;
 	unsigned long addr;
-	char readcmd[10] = {0};
-	char startcmd[10] = {0};
+	static char readcmd[10] = {0};
+	static char startcmd[10] = {0};
 	unsigned long filesize,scale;
 	unsigned long finish_size = 0;
 	if(argc < 2 || (strcmp(argv[1],"write") != 0 & strcmp(argv[1],"read") != 0 & strcmp(argv[1],"restart") != 0)){
@@ -101,17 +101,7 @@ int main(int argc,char* argv[]){
 			}
 			memset(rbuf,0,100);
 			memset(data,0,100);
-
 			addr += r_size;
-#if 0
-			finish_size += r_size;
-			//scale = (finish_size * 20) / filesize;
-			if(a < scale){
-				uintf("%d\%\n",a * 5);
-				fflush(stdout);
-				a++;
-			}
-#endif
 			a++;
 			if(a%5 == 0)
 				printf("#");

@@ -1,0 +1,6 @@
+#!/bin/sh
+wget $1 -O /tmp/WRTnode2r_stm32.bin
+spi-bridge write reset
+sleep 1
+WRTnode2r-stm32 write /tmp/WRTnode2r_stm32.bin
+
