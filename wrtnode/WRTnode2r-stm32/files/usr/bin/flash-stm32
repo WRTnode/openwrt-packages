@@ -1,6 +1,14 @@
 #!/bin/sh
-wget $1 -O /tmp/WRTnode2r_stm32.bin
-spi-bridge write reset
-sleep 1
-WRTnode2r-stm32 write /tmp/WRTnode2r_stm32.bin
+if [ ! -f $1 ];then
+	wget $1 -O /tmp/WRTnode2r_stm32.bin
+	if [ $? -eq 0 ];then
+		spi-bridge write reset
+		sleep 1
+		WRTnode2r-stm32 write /tmp/WRTnode2r_stm32.bin
+	fi
+else
+	spi-bridge write reset
+	sleep 1
+	WRTnode2r-stm32 write $1
+fi
 
