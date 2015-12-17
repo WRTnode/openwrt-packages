@@ -6,24 +6,25 @@ The following actions are performed in the OpenWrt system.
 
 Step:
 
-1：Install WRTnode2r-stm32 ipk：
+1：Download & Install WRTnode2r-stm32 ipk：
 
-	1.1：opkg update 
+	$opkg install http://d.wrtnode.com/packages/spi-bridge_1_ramips_24kec.ipk 
 
-	1.2 opkg install WRTnode2r-stm32
+	$opkg install http://d.wrtnode.com/packages/WRTnode2r-stm32_1_ramips_24kec.ipk
 
-2: Update stm32:
+2: Update stm32 system :
 
-STM32 system files can be placed in the local, but also directly download from the network.
+Usage: flash-stm32  
 
-for example:
+Example #1: Updated to the latest version
 
-	download from the network:
+	$flash-stm32	
 
-	flash-stm32 http://d.wrtnode.com/2R-stm32/WRTnode2r_stm32_V1.bin
+Example #2: Update to the specified version(server or local)
 
-	or
+	$flash-stm32 http://d.wrtnode.com/2R-stm32/$Stm32Firmware
 
-	Local file:
+or
 
-	flash-stm32 /tmp/WRTnode2r_stm32_V1.bin	
+	$flash-stm32 /tmp/$Stm32Firmware"
+
