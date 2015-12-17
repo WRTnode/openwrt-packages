@@ -1,14 +1,63 @@
 #!/bin/sh
-if [ ! -f $1 ];then
-	wget $1 -O /tmp/WRTnode2r_stm32.bin
-	if [ $? -eq 0 ];then
-		spi-bridge write reset
-		sleep 1
-		WRTnode2r-stm32 write /tmp/WRTnode2r_stm32.bin
-	fi
-else
+UpdateFun(){
 	spi-bridge write reset
 	sleep 1
-	WRTnode2r-stm32 write $1
+	WRTnode2r-stm32 write $UpdateFile
+}
+HelpFun(){
+echo ---------------------------------------------------------------------------
+	echo "Usage: flash-stm32  "
+	echo "Example #1: Updated to the latest version
+ flash-stm32	"
+	echo "Example #2: Update to the specified version(server or local)
+ flash-stm32 http://d.wrtnode.com/2R-stm32/\$Stm32Firmware
+ or
+ flash-stm32 /tmp/\$Stm32Firmware"
+echo ---------------------------------------------------------------------------
+	exit 0
+}
+# VerSer: the version of the server STM32 version
+UpdateFile=""
+if [ "$1"x = "--"x -o "$1"x = "--help"x ];then
+	HelpFun;
+elif [ "$1"x = ""x ];then
+	echo "Download the latest version form http://d.wrtnode.com/2R-stm32/update"
+	VerSer=$(wget http://d.wrtnode.com/2R-stm32/update/WRTnode2r_STM32_version -O -|awk -F "V" '{printf $NF}')
+	wget http://d.wrtnode.com/2R-stm32/update/WRTnode2r_STM32_rtthread.bin -O /tmp/WRTnode2r_STM32_rtthread.bin 
+        if [ $? -eq 0 ];then
+			echo "The latest version is $VerSer"
+			UpdateFile=/tmp/WRTnode2r_STM32_rtthread.bin
+		else	
+			echo "Please check your Internet connection."
+			exit 0
+		fi
+elif [ -f $1 ];then
+	UpdateFile=$1
+else
+	wget $1 -O /tmp/WRTnode2r_STM32_rtthread.bin
+	if [ $? -eq 0 ];then
+		UpdateFile=/tmp/WRTnode2r_STM32_rtthread.bin
+	else	
+		echo "Could not find this file. Please make sure that the path and file name (or download address) is correct."
+		HelpFun;
+	fi
 fi
-
+#Get the version of  the current STM32 version
+spi-bridge write 2r_version 
+str=`spi-bridge read`
+VerLoc=`echo $str|awk -F "V" '{print $2}'`
+echo "$VerLoc" | grep "[[:digit:]]" >/dev/null; ret=$?
+if [ $ret -ne 0 ];then
+	echo "No gets to the current STM32 version. Ple input \"Y\" to continue to upgrade or input \"N\" to cancel upgrade!"
+	read -p "input Y or N:"  val
+	if [ "$val"x = "Y"x -o "$val"x = "y"x ];then
+		UpdateFun;
+	fi
+else
+	VerLoc=${VerLoc%%[a-zA-Z]*}
+	echo "The current STM32 version is $VerLoc. Ple inpult \"Y\" to continue to upgrade or inpult \"N\" to cancel upgrade!"
+        read -p "input Y or N:" val
+	if [ "$val"x = "Y"x -o "$val"x = "y"x ];then
+		UpdateFun;
+	fi	
+fi
