@@ -1,6 +1,6 @@
 openwrt-packages
 ================
-[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/WRTnode/openwrt-packages)
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/WRTnode)
 
 The additional packages for OpenWrt provide by WRTnode team
 
