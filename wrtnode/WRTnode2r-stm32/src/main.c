@@ -5,10 +5,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-char usage[] =  "stm32-flash \n" \
-				 " format: command \n" \
-				 " write filename : upgrade stm32 firmware\n" \
-				 " restart : restart stm32\n";
+char usage[] =  "WRTnode2r-stm32 <command> [path]\n" \
+		" command: \n" \
+		"    write filename : upgrade stm32 firmware\n" \
+		"    read filename : read stm32 firmware to bin file\n" \
+		"    restart : restart stm32\n";
 
 unsigned long GetFileSize(const char *filename)
 {
