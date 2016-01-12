@@ -139,43 +139,7 @@ err:
 	close(fd);
 	return -1;
 }
-int WRTnode2r_spi_status(void) {
-	int fd;
-	fd = open("/dev/spiS0", O_RDONLY);
-	if (fd <= 0) {
-		fprintf(stderr, "Please insmod module spi_drv.o!\n");
-		return -1;
-	}
-	close(fd);
-	return read_status(fd);
-}
 
-int WRTnode2r_spi_start(void) {
-	int fd;
-	unsigned char len = 0;
-	unsigned char i = 0;
-	const char data[] = RT2880_SPI_START_STR;
-
-	fd = open("/dev/spiS0", O_RDWR);
-	if (fd <= 0) {
-		fprintf(stderr, "Please insmod module spi_drv.o!\n");
-		return -1;
-	}
-
-	len = strlen(data);
-	if(0 == len) {
-		fprintf(stderr, "write length is 0.\n");
-		close(fd);
-		return -1;
-	}
-	put_len(fd, len);
-	for(i=0; i<len; i++) {
-		put_ch(fd, data[i]);
-		DEBUG_PRINT("write data[%d] = 0x%x %c\n", i, data[i] , data[i]);
-	}
-	close(fd);
-	return 0;
-}
 size_t WRTnode2r_spi_write(char* data, int len, int is_force)
 {
 	int chk_match, size, fd;
