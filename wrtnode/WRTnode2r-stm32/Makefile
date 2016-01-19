@@ -21,7 +21,6 @@ define Package/WRTnode2r-stm32
   SECTION:=wrtnode
   CATEGORY:=WRTnode
   TITLE:=WRTnode2r update stm32 
-  DEPENDS:=+spi-bridge
 endef
 
 define Package/WRTnode2r-stm32/description
