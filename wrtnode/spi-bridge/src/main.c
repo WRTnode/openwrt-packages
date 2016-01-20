@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <linux/spi/spidev.h>
 
 #ifdef DEBUG
@@ -13,291 +15,454 @@
 #define DEBUG_PRINT(...)
 #endif
 
-#define SPI_DEVICE     "/dev/spidev1.0"
+#define SPI_DEVICE     "/dev/spidev0.1"
 #define SPI_MODE       SPI_MODE_0
 #define SPI_WORD_LEN   8
 #define SPI_HZ         1000000
 
-typedef struct spi_write_data {
-	unsigned long address;
-	unsigned long value;
-	unsigned long size;
-} SPI_WRITE;
+/************  SPI Bridge  **************/
+#define SPI_BRIDGE_MAX_DATA_LEN         (1024)
+#define SPI_BRIDGE_ONE_FRAME_MAX_LEN    (255)
+#define SPI_BRIDGE_READ_RETRY_TIMES     (5)
+#define SPI_BRIDGE_WRITE_RETRY_TIMES    (5)
+#define SPI_BRIDGE_RESP_RETRY_TIMES     (20)
+
+struct spi_bridge {
+	int fd;
+
+	/* for console */
+	pthread_t read_mcu_tidp;
+	pthread_t read_stdin_tidp;
+	pthread_mutex_t spi_mutex;
+
+#define SPI_BRIDGE_STATUS_7688_READ_FROM_STM32_E    (1<<0)
+#define SPI_BRIDGE_STATUS_7688_READ_FROM_STM32_NE   (0<<0)
+#define SPI_BRIDGE_STATUS_7688_WRITE_TO_STM32_F     (1<<1)
+#define SPI_BRIDGE_STATUS_7688_WRITE_TO_STM32_NF    (0<<1)
+#define SPI_BRIDGE_STATUS_SET_PARAMETER_ERR         (1<<2)
+#define SPI_BRIDGE_STATUS_SET_PARAMETER_OK          (0<<2)
+#define SPI_BRIDGE_STATUS_CHECK_ERR                 (1<<3)
+#define SPI_BRIDGE_STATUS_CHECK_OK                  (0<<3)
+#define SPI_BRIDGE_STATUS_OK                        (0x50)
+#define SPI_BRIDGE_STATUS_HEAD_MASK                 (0xf0)
+#define SPI_BRIDGE_STATUS_ERR_MASK                  (0x0f)
+#define SPI_BRIDGE_STATUS_NULL                      (0x00)
+	uint8_t status;
+
+#define SPI_BRIDGE_CMD_GET_STATUS                   (1U)
+#define SPI_BRIDGE_CMD_7688_READ_FROM_STM32         (10U)
+#define SPI_BRIDGE_CMD_7688_WRITE_TO_STM32          (20U)
+#define SPI_BRIDGE_CMD_SET_BLOCK_LEN                (30U)
+#define SPI_BRIDGE_CMD_NULL                         (0U)
+	uint8_t cmd;
+
+	/* block length */
+#define SPI_BRIDGE_LEN_8_BYTES                      (8U)
+#define SPI_BRIDGE_LEN_16_BYTES                     (16U)
+#define SPI_BRIDGE_LEN_32_BYTES                     (32U)
+	uint8_t len;
+	/* in block length count */
+	uint8_t count;
+	uint8_t* xfet_buf;
+};
 
 #define RT2880_SPI_READ_STR    "read"
 #define RT2880_SPI_WRITE_STR   "write"
 #define RT2880_SPI_STATUS_STR  "status"
-#define RT2880_SPI_FORCE_STR   "-f"
 
 #define RT2880_SPI_READ     (2)
 #define RT2880_SPI_STATUS   (2)
 #define RT2880_SPI_WRITE    (3)
 
-#define SPI_FRAME_MAX_LEN   (255)
+#define SPI_MCU_READ_DELAY_US          (100000U)
+#define SPI_MCU_WRITE_DELAY_US         (200U)
+#define SPI_MCU_RESP_DELAY_US          (50000U)
+#define SPI_MCU_CHECK_STATUS_DELAY_US  (100000U)
 
-#define SPI_MCU_READ        (0x01)
-#define SPI_MCU_READ_LEN    (0x04)
-#define SPI_MCU_WRITE       (0x10)
-#define SPI_MCU_WRITE_LEN   (0x40)
-#define SPI_MCU_READ_STATUS (0xff)
-#define SPI_STATUS_7688_READ_FROM_STM32_E     (1<<0)
-#define SPI_STATUS_7688_READ_FROM_STM32_NE    (0<<0)
-#define SPI_STATUS_7688_WRITE_TO_STM32_F      (1<<1)
-#define SPI_STATUS_7688_WRITE_TO_STM32_NF     (0<<1)
-#define SPI_STATUS_OK       (0x80)
+static char usage[] =	"spi-bridge [read/write/status] WRTnode2r stm32 data\n"
+						"  spi-bridge read \n"
+						"  spi-bridge write [string]\n"
+						"  spi-bridge status \n"
+						"  NOTE -- read/write/status value are in string\n"
+						"spi-bridge\n  Open spiconsole.\n";
 
-char usage[] =	"spicmd [read/write] [-f] WRTnode2r stm32 data(if write)\n"
-		"spicmd format:\n"
-		"  spicmd read \n"
-		"  spicmd write [string]\n"
-		"  spicmd status \n"
-		"-f Force read/write. Do not block\n"
-		"NOTE -- read/write/status value are in string\n"
-		"spicmd\n  Open spiconsole.\n";
+static struct spi_bridge spi_bridge;
 
-#define SPI_MCU_READ_DELAY_US          (200)
-#define SPI_MCU_WRITE_DELAY_US         (200)
-#define SPI_MCU_CHECK_STATUS_DELAY_US  (100000)
-
-#define INIT_MSG { \
-		.speed_hz = SPI_HZ, \
-		.delay_usecs = 0, \
-		.bits_per_word = SPI_WORD_LEN, \
-		.tx_buf = 0, \
-		.rx_buf = 0, \
-		.len = 0, \
-		.cs_change = 0, \
-	}
-
-static ssize_t stm32_spi_read(int fd, const unsigned char cmd, void* buf, size_t count)
+static inline bool _is_spi_bridge_status_head_ok(uint8_t status)
 {
-	struct spi_ioc_transfer msg[4];
+	return (status & SPI_BRIDGE_STATUS_HEAD_MASK) == SPI_BRIDGE_STATUS_OK;
+}
+
+static inline bool _can_spi_bridge_status_read(uint8_t status)
+{
+	return !(status & SPI_BRIDGE_STATUS_7688_READ_FROM_STM32_E);
+}
+
+static inline bool _can_spi_bridge_status_write(uint8_t status)
+{
+	return !(status & SPI_BRIDGE_STATUS_7688_WRITE_TO_STM32_F);
+}
+
+static inline bool _is_spi_bridge_status_set_ok(uint8_t status)
+{
+	return !(status & SPI_BRIDGE_STATUS_SET_PARAMETER_ERR);
+}
+
+static inline bool _is_spi_bridge_status_check_ok(uint8_t status)
+{
+	return !(status & SPI_BRIDGE_STATUS_CHECK_ERR);
+}
+
+static inline bool _is_spi_bridge_status_ok(uint8_t status)
+{
+	return !(status & SPI_BRIDGE_STATUS_ERR_MASK);
+}
+
+static inline uint8_t spi_bridge_calulate_check(char* data)
+{
 	int i;
-
-	for(i=4; i>0; i--) {
-		msg[i].speed_hz = SPI_HZ;
-		msg[i].delay_usecs = 0;
-		msg[i].bits_per_word = SPI_WORD_LEN;
-		msg[i].tx_buf = 0;
-		msg[i].rx_buf = 0;
-		msg[i].len = 0;
-		msg[i].cs_change = 0;
+	uint8_t chk = 0;
+	uint8_t* ptr = data;
+	for (i = spi_bridge.len; i > 0; i--) {
+		chk ^= *ptr++;
 	}
+	return chk;
+}
 
-	msg[0].cs_change = 1;
+static uint8_t spi_bridge_send_cmd(const uint8_t cmd, bool retry)
+{
+	struct spi_ioc_transfer msg[2];
+	int i = 1;
+	uint8_t resp;
 
-	msg[1].tx_buf = (__u32)&cmd;
+	memset(msg, 0, 2 * sizeof(struct spi_ioc_transfer));
+
+	msg[0].tx_buf = (__u32)&cmd;
+	msg[0].len = 1;
+	msg[0].delay_usecs = SPI_MCU_RESP_DELAY_US;
+
+	msg[1].rx_buf = (__u32)&resp;
 	msg[1].len = 1;
+	msg[1].cs_change = 1;
 
-	msg[2].rx_buf = (__u32)buf;
-	msg[2].len = count;
-
-	msg[3].cs_change = 1;
-
-	if(ioctl(fd, SPI_IOC_MESSAGE(2), msg) < 0) {
-		fprintf(stderr, "do spi read error.\n");
-		return -1;
-	}
-	usleep(SPI_MCU_READ_DELAY_US);
-	if(ioctl(fd, SPI_IOC_MESSAGE(2), &msg[2]) < 0) {
-		fprintf(stderr, "do spi read error.\n");
-		return -1;
+	if (ioctl(spi_bridge.fd, SPI_IOC_MESSAGE(2), msg) < 0) {
+		fprintf(stderr, "spi bridge send cmd first send error.\n");
+		return SPI_BRIDGE_STATUS_NULL;
 	}
 
-	return count;
+	if (_is_spi_bridge_status_head_ok(resp))
+		return resp;
+
+	if (!retry) {
+		fprintf(stderr, "spi bridge send cmd error.\n");
+		return SPI_BRIDGE_STATUS_NULL;
+	}
+
+	do {
+		DEBUG_PRINT("spi bridge send cmd retry %d.\n", i);
+		if (ioctl(spi_bridge.fd, SPI_IOC_MESSAGE(1), &msg[1]) < 0) {
+			fprintf(stderr, "spi bridge send cmd retry %d error.\n", i);
+			return SPI_BRIDGE_STATUS_NULL;
+		}
+		if (_is_spi_bridge_status_head_ok(resp))
+			return resp;
+	} while (i++ <= SPI_BRIDGE_RESP_RETRY_TIMES);
+
+	fprintf(stderr, "spi bridge send cmd error.\n");
+	return SPI_BRIDGE_STATUS_NULL;
 }
 
-static ssize_t stm32_spi_write(int fd, const unsigned char cmd, const void* buf, size_t count)
+static uint8_t spi_bridge_read_one_frame(void* data, bool retry)
 {
-	struct spi_ioc_transfer msg[4];
-	int i;
+	struct spi_ioc_transfer msg[2];
+	char buf[spi_bridge.len + 1];
+	int i = 1;
+	uint8_t resp;
 
-	for(i=4; i>0; i--) {
-		msg[i].speed_hz = SPI_HZ;
-		msg[i].delay_usecs = 0;
-		msg[i].bits_per_word = SPI_WORD_LEN;
-		msg[i].tx_buf = 0;
-		msg[i].rx_buf = 0;
-		msg[i].len = 0;
-		msg[i].cs_change = 0;
-	}
+	memset(msg, 0, 2 * sizeof(struct spi_ioc_transfer));
 
-	msg[0].cs_change = 1;
+	msg[0].rx_buf = (__u32)buf;
+	msg[0].len = spi_bridge.len + 1;
+	msg[0].delay_usecs = SPI_MCU_RESP_DELAY_US;
 
-	msg[1].tx_buf = (__u32)&cmd;
+	msg[1].rx_buf = (__u32)&resp;
 	msg[1].len = 1;
+	msg[1].cs_change = 1;
 
-	msg[2].tx_buf = (__u32)buf;
-	msg[2].len = count;
-
-	msg[3].cs_change = 1;
-
-	if(ioctl(fd, SPI_IOC_MESSAGE(2), msg) < 0) {
-		fprintf(stderr, "do spi write error.\n");
-		return -1;
-	}
-	usleep(SPI_MCU_WRITE_DELAY_US);
-	if(ioctl(fd, SPI_IOC_MESSAGE(2), &msg[2]) < 0) {
-		fprintf(stderr, "do spi write error.\n");
-		return -1;
+	if (ioctl(spi_bridge.fd, SPI_IOC_MESSAGE(2), msg) < 0) {
+		fprintf(stderr, "spi bridge read one frame first send error.\n");
+		return SPI_BRIDGE_STATUS_NULL;
 	}
 
-	return count;
+	if (buf[spi_bridge.len] != spi_bridge_calulate_check(buf)) {
+		fprintf(stderr, "spi bridge read one frame data check error.\n");
+		return SPI_BRIDGE_STATUS_NULL;
+	}
+
+	if (_is_spi_bridge_status_head_ok(resp)) {
+		memcpy(data, buf, spi_bridge.len);
+		return resp;
+	}
+
+	if (!retry) {
+		fprintf(stderr, "spi bridge read one frame error.\n");
+		return SPI_BRIDGE_STATUS_NULL;
+	}
+
+	do {
+		DEBUG_PRINT("spi bridge read one frame retry %d.\n", i);
+		if (ioctl(spi_bridge.fd, SPI_IOC_MESSAGE(1), &msg[1]) < 0) {
+			fprintf(stderr, "spi bridge read one frame retry %d error.\n", i);
+			return SPI_BRIDGE_STATUS_NULL;
+		}
+		if (_is_spi_bridge_status_head_ok(resp)) {
+			memcpy(data, buf, spi_bridge.len);
+			return resp;
+		}
+	} while (i++ <= SPI_BRIDGE_RESP_RETRY_TIMES);
+
+	fprintf(stderr, "spi bridge read one frame error.\n");
+	return SPI_BRIDGE_STATUS_NULL;
 }
 
-static inline unsigned char read_status(int fd)
+static uint8_t spi_bridge_write_one_frame(const void* data, bool retry)
 {
-	unsigned char status;
-	stm32_spi_read(fd, SPI_MCU_READ_STATUS, &status, 1);
-	return status;
+	struct spi_ioc_transfer msg[2];
+	char buf[spi_bridge.len + 1];
+	int i = 1;
+	uint8_t resp;
+
+	memset(msg, 0, 2 * sizeof(struct spi_ioc_transfer));
+	memcpy(buf, data, spi_bridge.len);
+	buf[spi_bridge.len] = spi_bridge_calulate_check(buf);
+
+	msg[0].tx_buf = (__u32)buf;
+	msg[0].len = spi_bridge.len + 1;
+	msg[0].delay_usecs = SPI_MCU_RESP_DELAY_US;
+
+	msg[1].rx_buf = (__u32)&resp;
+	msg[1].len = 1;
+	msg[1].cs_change = 1;
+
+	if (ioctl(spi_bridge.fd, SPI_IOC_MESSAGE(2), msg) < 0) {
+		fprintf(stderr, "spi bridge write one frame first send error.\n");
+		return SPI_BRIDGE_STATUS_NULL;
+	}
+
+	if (_is_spi_bridge_status_head_ok(resp))
+		return resp;
+
+	if (!retry) {
+		fprintf(stderr, "spi bridge write one frame error.\n");
+		return SPI_BRIDGE_STATUS_NULL;
+	}
+
+	do {
+		DEBUG_PRINT("spi bridge write one frame retry %d.\n", i);
+		if (ioctl(spi_bridge.fd, SPI_IOC_MESSAGE(1), &msg[1]) < 0) {
+			fprintf(stderr, "spi bridge write one frame retry %d error.\n", i);
+			return SPI_BRIDGE_STATUS_NULL;
+		}
+		if (_is_spi_bridge_status_head_ok(resp))
+			return resp;
+	} while (i++ <= SPI_BRIDGE_RESP_RETRY_TIMES);
+
+	fprintf(stderr, "spi bridge write one frame error.\n");
+	return SPI_BRIDGE_STATUS_NULL;
 }
 
-static inline unsigned char read_len(int fd)
+static inline uint8_t spi_bridge_read_status(void)
 {
-	unsigned char len;
-	stm32_spi_read(fd, SPI_MCU_READ_LEN, &len, 1);
-	return len;
+	spi_bridge_send_cmd(SPI_BRIDGE_CMD_GET_STATUS, true);
 }
 
-static inline char read_ch(int fd)
+static ssize_t spi_bridge_write(const void* data, size_t len)
 {
-	char ch;
-	stm32_spi_read(fd, SPI_MCU_READ, &ch, 1);
-	return ch;
+	int writen = len;
+	int i = 0;
+	char buf[spi_bridge.len];
+	const char* ptr = data;
+	uint8_t status;
+
+	status = spi_bridge_send_cmd(SPI_BRIDGE_CMD_7688_WRITE_TO_STM32, true);
+	if (status == SPI_BRIDGE_STATUS_NULL) {
+		fprintf(stderr, "spi bridge write send cmd error.\n");
+		return 0;
+	}
+
+	while (writen && (i < SPI_BRIDGE_WRITE_RETRY_TIMES)) {
+		if (!_can_spi_bridge_status_write(status)) {
+			fprintf(stderr, "spi bridge write stm32 full.\n");
+			return len - writen;
+		}
+
+		if (writen < spi_bridge.len) {
+			memset(buf, 0, spi_bridge.len);
+			memcpy(buf, data, writen);
+			ptr = buf;
+		}
+
+		status = spi_bridge_write_one_frame(ptr, false);
+		if (status == SPI_BRIDGE_STATUS_NULL) {
+			fprintf(stderr, "spi bridge write write one frame error.\n");
+			return len - writen;
+		}
+		if (!_is_spi_bridge_status_check_ok(status)) {
+			i++;
+			DEBUG_PRINT("spi bridge write retry %d.\n", i);
+			continue;
+		}
+		writen -= (writen < spi_bridge.len) ? writen : spi_bridge.len;
+		ptr += (writen < spi_bridge.len) ? 0 : spi_bridge.len;
+		i = 0;
+	}
+
+	if (SPI_BRIDGE_WRITE_RETRY_TIMES == i)
+		fprintf(stderr, "spi bridge write error.\n");
+
+	return len - writen;
 }
 
-static inline ssize_t read_str(int fd, void* buf, size_t count)
+static ssize_t spi_bridge_read(void* data, size_t len)
 {
-	return stm32_spi_read(fd, SPI_MCU_READ, buf, count);
+	int readn = len;
+	int i = 0;
+	char buf[spi_bridge.len];
+	char* ptr = data;
+	uint8_t status;
+
+	status = spi_bridge_send_cmd(SPI_BRIDGE_CMD_7688_READ_FROM_STM32, true);
+	if (status == SPI_BRIDGE_STATUS_NULL) {
+		fprintf(stderr, "spi bridge read send cmd error.\n");
+		return 0;
+	}
+
+	while (readn && (i < SPI_BRIDGE_READ_RETRY_TIMES)) {
+		if (!_can_spi_bridge_status_read(status)) {
+			fprintf(stderr, "spi bridge read stm32 empty.\n");
+			return len - readn;
+		}
+
+		status = spi_bridge_read_one_frame(buf, false);
+		if (status == SPI_BRIDGE_STATUS_NULL) {
+			fprintf(stderr, "spi bridge read read one frame error.\n");
+			return len - readn;
+		}
+		if (!_is_spi_bridge_status_check_ok(status)) {
+			i++;
+			DEBUG_PRINT("spi bridge read retry %d.\n", i);
+			continue;
+		}
+
+		memcpy(ptr, buf, (readn < spi_bridge.len) ? readn : spi_bridge.len);
+		readn -= (readn < spi_bridge.len) ? readn : spi_bridge.len;
+		ptr += (readn < spi_bridge.len) ? 0 : spi_bridge.len;
+		i = 0;
+	}
+
+	if (SPI_BRIDGE_READ_RETRY_TIMES == i)
+		fprintf(stderr, "spi bridge read error.\n");
+
+	return len - readn;
 }
 
-static inline void put_len(int fd, unsigned char len)
-{
-	stm32_spi_write(fd, SPI_MCU_WRITE_LEN, &len, 1);
-}
-
-static inline void put_ch(int fd, char ch)
-{
-	stm32_spi_write(fd, SPI_MCU_WRITE, &ch, 1);
-}
-
-static inline ssize_t write_str(int fd, const void* buf, size_t count)
-{
-	return stm32_spi_write(fd, SPI_MCU_WRITE, buf, count);
-}
-
-static pthread_t read_mcu_tidp;
-static pthread_t read_stdin_tidp;
-static pthread_mutex_t spi_mutex;
-
-/* *
- * NOTICE: If 7688 read one byte from STM32, It will got right byte in next read cmd.
- * */
 static void* read_mcu_handler(void* arg)
 {
-	int fd = *(int*)arg;
-	unsigned char len = 0;
-	char* data = NULL;
-	int i = 0;
+	char* buf;
 
-	while(1) {
-		do {
-			unsigned char status = SPI_STATUS_OK;
-			pthread_mutex_lock(&spi_mutex);
-			status = read_status(fd);
-			DEBUG_PRINT("read status = 0x%x\n", status);
-			if(status & (SPI_STATUS_OK) &&
-	 (!(status & SPI_STATUS_7688_READ_FROM_STM32_E))) {
-				break;
-			}
-			pthread_mutex_unlock(&spi_mutex);
-			usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
-		}while(1);
-
-		len = read_len(fd);
-		DEBUG_PRINT("read len = %d\n", len);
-		if(0 == len) {
-			fprintf(stderr, "read length is 0.\n");
-			goto OUT;
-		}
-
-		if(NULL == (data = (char*)malloc((len+1)*sizeof(char)))) {
-			fprintf(stderr, "read data malloc error!\n");
-			goto OUT;
-		}
-
-		read_str(fd, data, len);
-		data[len] = '\0';
-		pthread_mutex_unlock(&spi_mutex);
-		printf("%s",data);
-		free(data);
-		data = NULL;
+	buf = (char*)malloc(SPI_BRIDGE_MAX_DATA_LEN * sizeof(char));
+	if (NULL == buf) {
+		fprintf(stderr, "spi bridge failed to malloc spi read buffer.\n");
+		pthread_exit(NULL);
 	}
 
-OUT:
-	pthread_mutex_unlock(&spi_mutex);
+	while (1) {
+		char* data_in;
+		uint8_t status;
+		ssize_t len;
+
+		data_in = buf;
+		do {
+			pthread_mutex_lock(&spi_bridge.spi_mutex);
+			status = spi_bridge_read_status();
+			DEBUG_PRINT("read_mcu_handler read status = 0x%x\n", status);
+			if (_is_spi_bridge_status_head_ok(status)
+				&& _can_spi_bridge_status_read(status)) {
+				break;
+			}
+			pthread_mutex_unlock(&spi_bridge.spi_mutex);
+			usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
+		} while (1);
+
+		len = spi_bridge_read(data_in, SPI_BRIDGE_MAX_DATA_LEN);
+		pthread_mutex_unlock(&spi_bridge.spi_mutex);
+		if (len < 0) {
+			fprintf(stderr, "spi bridge read failed.\n");
+			break;
+		}
+		if (SPI_BRIDGE_MAX_DATA_LEN != len)
+			data_in[len] = '\0';
+		fprintf(stdout, "%s", data_in);
+	}
+
+	free(buf);
+	pthread_cancel(spi_bridge.read_stdin_tidp);
 	pthread_exit(NULL);
 }
 
 static void* read_stdin_handler(void* arg)
 {
-	int fd = *(int*)arg;
-	unsigned char len = 0;
-	unsigned char status = SPI_STATUS_OK;
-	char* data = NULL;
-	int i = 0;
+	char* buf;
 
-	data = (char*)malloc(SPI_FRAME_MAX_LEN*sizeof(char));
-	if(NULL == data) {
-		fprintf(stderr, "failed to malloc spi write buffer.\n");
+	buf = (char*)malloc(SPI_BRIDGE_MAX_DATA_LEN * sizeof(char));
+	if (NULL == buf) {
+		fprintf(stderr, "spi bridge failed to malloc spi write buffer.\n");
 		pthread_exit(NULL);
 	}
-	while(1) {
-		char* data_in = NULL;
-		data_in = fgets(data, SPI_FRAME_MAX_LEN, stdin);
-		if(NULL != data_in) {
-			if(strncmp(data_in, "exit", 4) == 0) {
-				pthread_cancel(read_mcu_tidp);
-				pthread_exit(NULL);
-			}
+
+	while (1) {
+		char* data_in;
+		uint8_t status;
+
+		data_in = buf;
+		data_in = fgets(data_in, SPI_BRIDGE_MAX_DATA_LEN, stdin);
+		if (NULL != data_in) {
+			if (strncmp(data_in, "exit", 4) == 0)
+				break;
 			do {
-				pthread_mutex_lock(&spi_mutex);
-				status = read_status(fd);
-				DEBUG_PRINT("write status = 0x%x\n", status);
-				if((status & SPI_STATUS_OK) &&
-	   (!(status & SPI_STATUS_7688_WRITE_TO_STM32_F))) {
+				pthread_mutex_lock(&spi_bridge.spi_mutex);
+				status = spi_bridge_read_status();
+				DEBUG_PRINT("read_stdin_handler read status = 0x%x\n", status);
+				if (_is_spi_bridge_status_head_ok(status)
+					&& _can_spi_bridge_status_write(status)) {
 					break;
 				}
-				pthread_mutex_unlock(&spi_mutex);
+				pthread_mutex_unlock(&spi_bridge.spi_mutex);
 				usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
-			} while(1);
-			len = strlen(data_in);
-			if(0 == len) {
-				fprintf(stderr, "write length is 0.\n");
-				goto OUT;
+			} while (1);
+			if (spi_bridge_write(data_in, strlen(data_in)) < 0) {
+				fprintf(stderr, "spi bridge write failed.\n");
+				pthread_mutex_unlock(&spi_bridge.spi_mutex);
+				break;
 			}
-			put_len(fd, len);
-			write_str(fd, data_in, len);
-			DEBUG_PRINT("write data = %s\n", data_in);
-			pthread_mutex_unlock(&spi_mutex);
-		}
-		else {
+			DEBUG_PRINT("spi bridge write %s\n", data_in);
+			pthread_mutex_unlock(&spi_bridge.spi_mutex);
+		} else {
 			fprintf(stderr, "fgets error.\n");
+			break;
 		}
-		data_in = NULL;
-		len = 0;
 	}
 
-OUT:
-	pthread_mutex_unlock(&spi_mutex);
+	free(buf);
+	pthread_cancel(spi_bridge.read_mcu_tidp);
 	pthread_exit(NULL);
 }
 
 static void spi_console_exit(int sig)
 {
 	DEBUG_PRINT("Get SIGINT.\n");
-	pthread_cancel(read_mcu_tidp);
-	pthread_cancel(read_stdin_tidp);
+	pthread_cancel(spi_bridge.read_mcu_tidp);
+	pthread_cancel(spi_bridge.read_stdin_tidp);
 }
 
 static int open_spi_device(const char* dev)
@@ -312,15 +477,15 @@ static int open_spi_device(const char* dev)
 		fprintf(stderr, "Can not open spi device(%s).\n", dev);
 		return -1;
 	}
-	if(ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
+	if (ioctl(fd, SPI_IOC_WR_MODE, &mode) < 0) {
 		fprintf(stderr, "Can not set spidev mode to %d.\n", mode);
 		goto err_out;
 	}
-	if(ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_len) < 0) {
+	if (ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &word_len) < 0) {
 		fprintf(stderr, "Can not set spidev word len to %d.\n", word_len);
 		goto err_out;
 	}
-	if(ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &hz) < 0) {
+	if (ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &hz) < 0) {
 		fprintf(stderr, "Can not set spidev speed to %d.\n", hz);
 		goto err_out;
 	}
@@ -331,178 +496,131 @@ err_out:
 	return -1;
 }
 
+static void spi_bridge_init(void)
+{
+	memset(&spi_bridge, 0, sizeof(spi_bridge));
+	spi_bridge.len = SPI_BRIDGE_LEN_16_BYTES;
+}
+
 int main(int argc, char* argv[])
 {
-	int chk_match, size, fd;
-	int is_force = 0;
-	unsigned char buf;
+	spi_bridge_init();
 
-	if(argc == 1) {
-		fd = open_spi_device(SPI_DEVICE);
-		if (fd <= 0) {
+	if (argc == 1) {
+		spi_bridge.fd = open_spi_device(SPI_DEVICE);
+		if (spi_bridge.fd <= 0) {
 			fprintf(stderr, "Can not open spi device!\n");
 			return -1;
 		}
 		DEBUG_PRINT("Start SPI console.\n");
 		signal(SIGINT, spi_console_exit);
-		if(pthread_mutex_init(&spi_mutex, NULL) < 0) {
+		if (pthread_mutex_init(&spi_bridge.spi_mutex, NULL) < 0) {
 			fprintf(stderr, "Init thread mutex error.\n");
 			return -1;
 		}
-		if(pthread_create(&read_mcu_tidp, NULL, read_mcu_handler, &fd) < 0) {
+		if (pthread_create(&spi_bridge.read_mcu_tidp, NULL, read_mcu_handler, NULL) < 0) {
 			fprintf(stderr, "Create read mcu thread failed.\n");
 			return -1;
 		}
-		if(pthread_create(&read_stdin_tidp, NULL, read_stdin_handler, &fd) < 0) {
+		if (pthread_create(&spi_bridge.read_stdin_tidp, NULL, read_stdin_handler, NULL) < 0) {
 			fprintf(stderr, "Create write mcu thread failed.\n");
 			return -1;
 		}
 
 		/* wait SIGINT signal to exit */
-		pthread_join(read_mcu_tidp, NULL);
-		pthread_join(read_stdin_tidp, NULL);
+		pthread_join(spi_bridge.read_mcu_tidp, NULL);
+		pthread_join(spi_bridge.read_stdin_tidp, NULL);
 		printf("SPI console exit.\n");
-		close(fd);
+		close(spi_bridge.fd);
 		return 0;
 	}
 
-	if ((argc > 2) && (0 == strcmp(argv[2], RT2880_SPI_FORCE_STR))) {
-		is_force = 1;
-		argc --;
-	}
-
-	/* We use the last specified parameters, unless new ones are entered */
 	switch (argc) {
 	//case RT2880_SPI_STATUS:
 	case RT2880_SPI_READ:
-		if(0 == strcmp(argv[1], RT2880_SPI_READ_STR)) {
-			unsigned char status = SPI_STATUS_OK;
-			unsigned char len = 0;
-			unsigned char i = 0;
-			char* data = NULL;
+		if (0 == strcmp(argv[1], RT2880_SPI_READ_STR)) {
+			char* data;
+			int len;
 
-			fd = open_spi_device(SPI_DEVICE);
-			if (fd <= 0) {
+			spi_bridge.fd = open_spi_device(SPI_DEVICE);
+			if (spi_bridge.fd <= 0) {
 				fprintf(stderr, "Can not open spi device!\n");
 				return -1;
 			}
-			if (is_force) {
-				status = read_status(fd);
-				DEBUG_PRINT("read status = 0x%x\n", status);
-				if(!(status & SPI_STATUS_OK)) {
-					fprintf(stderr, "stm32 spi read error.\n");
-					return -1;
+
+			do {
+				spi_bridge.status = spi_bridge_read_status();
+				DEBUG_PRINT("spi bridge status = 0x%x\n", spi_bridge.status);
+				if (_is_spi_bridge_status_head_ok(spi_bridge.status)
+					&& _can_spi_bridge_status_read(spi_bridge.status)) {
+					break;
 				}
-				if(status & SPI_STATUS_7688_READ_FROM_STM32_E) {
-					fprintf(stderr, "stm32 read buf empty.\n");
-					return -1;
-				}
-			}
-			else {
-				do {
-					status = read_status(fd);
-					DEBUG_PRINT("read status = 0x%x\n", status);
-					if(status & (SPI_STATUS_OK) &&
-					  (!(status & SPI_STATUS_7688_READ_FROM_STM32_E))) {
-						break;
-					}
-					usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
-				}while(1);
-			}
-			len = read_len(fd);
-			DEBUG_PRINT("read len = %d\n", len);
-			if(0 == len) {
-				fprintf(stderr, "read length is 0.\n");
-				return -1;
-			}
-			if(NULL == (data = (char*)malloc((len+1)*sizeof(char)))) {
+				usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
+			} while (1);
+
+			if (NULL == (data = (char*)malloc(SPI_BRIDGE_MAX_DATA_LEN * sizeof(char)))) {
 				fprintf(stderr, "read data malloc error!\n");
+				close(spi_bridge.fd);
 				return -1;
 			}
-			read_str(fd, data, len);
-			data[len] = '\0';
-			printf("%s\n",data);
-			free(data);
-			close(fd);
-		}
-		else if (0 == strcmp(argv[1], RT2880_SPI_STATUS_STR)) {
-			unsigned char status = 0;
 
-			fd = open_spi_device(SPI_DEVICE);
-			if (fd <= 0) {
+			len = spi_bridge_read(data, SPI_BRIDGE_MAX_DATA_LEN);
+			fprintf(stdout, "%s", data);
+			free(data);
+			close(spi_bridge.fd);
+		} else if (0 == strcmp(argv[1], RT2880_SPI_STATUS_STR)) {
+			spi_bridge.fd = open_spi_device(SPI_DEVICE);
+			if (spi_bridge.fd <= 0) {
 				fprintf(stderr, "Can not open spi device!\n");
 				return -1;
 			}
-			status = read_status(fd);
-			if(status & SPI_STATUS_OK) {
-				if(status & SPI_STATUS_7688_READ_FROM_STM32_E) {
-					printf("Can not read. STM32 read buf empty.\n");
-				}
-				if(status & SPI_STATUS_7688_WRITE_TO_STM32_F) {
-					printf("Can not write. STM32 write buf full.\n");
-				}
-				if(status == SPI_STATUS_OK) {
-					printf("OK\n");
-				}
+			spi_bridge.status = spi_bridge_read_status();
+			DEBUG_PRINT("spi bridge status = 0x%x\n", spi_bridge.status);
+			if (!_is_spi_bridge_status_head_ok(spi_bridge.status)) {
+				printf("spi bridge read status error.\n");
+				close(spi_bridge.fd);
+				return -1;
 			}
-			else {
-				printf("spi stm32 read error.\n");
-			}
-			close(fd);
-		}
-		else {
+			if (!_can_spi_bridge_status_read(spi_bridge.status))
+				printf("Can not read. STM32 read buf empty.\n");
+			if (!_can_spi_bridge_status_write(spi_bridge.status))
+				printf("Can not write. STM32 write buf full.\n");
+			if (!_is_spi_bridge_status_set_ok(spi_bridge.status))
+				printf("Set stm32 parameter error.\n");
+			if (!_is_spi_bridge_status_check_ok(spi_bridge.status))
+				printf("Transfer data error.\n");
+			if (_is_spi_bridge_status_ok(spi_bridge.status))
+				printf("OK\n");
+			close(spi_bridge.fd);
+		} else {
 			fprintf(stderr, "Usage:\n%s\n", usage);
 			return -1;
 		}
 		break;
 	case RT2880_SPI_WRITE:
-		if(0 == strcmp(argv[1], RT2880_SPI_WRITE_STR)) {
-			unsigned char status = 0;
-			unsigned char len = 0;
-			unsigned char i = 0;
-			char* data = (is_force)? argv[3]: argv[2];
+		if (0 == strcmp(argv[1], RT2880_SPI_WRITE_STR)) {
+			char* data = argv[2];
 
-			fd = open_spi_device(SPI_DEVICE);
-			if (fd <= 0) {
+			spi_bridge.fd = open_spi_device(SPI_DEVICE);
+			if (spi_bridge.fd <= 0) {
 				fprintf(stderr, "Can not open spi device!\n");
 				return -1;
 			}
 
-			if (is_force) {
-				status = read_status(fd);
-				DEBUG_PRINT("write status = 0x%x\n", status);
-				if(status & SPI_STATUS_OK) {
-					if(status & SPI_STATUS_7688_WRITE_TO_STM32_F) {
-						fprintf(stderr, "stm32 write buf full.\n");
-						return -1;
-					}
+			do {
+				spi_bridge.status = spi_bridge_read_status();
+				DEBUG_PRINT("spi bridge status = 0x%x\n", spi_bridge.status);
+				if (_is_spi_bridge_status_head_ok(spi_bridge.status)
+					&& _can_spi_bridge_status_write(spi_bridge.status)) {
+					break;
 				}
-				else {
-					fprintf(stderr, "stm32 spi read error.\n");
-				}
-			}
-			else {
-				do {
-					status = read_status(fd);
-					DEBUG_PRINT("write status = 0x%x\n", status);
-					if((status & SPI_STATUS_OK) &&
-					   (!(status & SPI_STATUS_7688_WRITE_TO_STM32_F))) {
-						break;
-					}
-					usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
-				} while(1);
-			}
-			len = strlen(data);
-			if(0 == len) {
-				fprintf(stderr, "write length is 0.\n");
-				return -1;
-			}
-			put_len(fd, len+1); //add \n for msh
-			write_str(fd, data, len);
-			put_ch(fd, '\n');
-			close(fd);
-		}
-		else {
+				usleep(SPI_MCU_CHECK_STATUS_DELAY_US);
+			} while (1);
+
+			spi_bridge_write(data, strlen(data));
+			DEBUG_PRINT("spi bridge write %s\n", data);
+			close(spi_bridge.fd);
+		} else {
 			fprintf(stderr, "Usage:\n%s\n", usage);
 			return -1;
 		}
