@@ -12,7 +12,7 @@
 #define DEBUG_PRINT(...)
 #endif
 
-#define SPI_DEVICE    "/dev/spidev1.0"
+#define SPI_DEVICE    "/dev/spidev0.1"
 #define SPI_MODE      SPI_MODE_0
 #define SPI_WORD_LEN  8
 #define SPI_HZ        1000000
@@ -33,95 +33,84 @@ typedef struct spi_write_data {
 #define SPI_STATUS_7688_WRITE_TO_STM32_F     (1<<1)
 #define SPI_STATUS_7688_WRITE_TO_STM32_NF    (0<<1)
 #define SPI_STATUS_OK                        (0x80)
-#define INIT_MSG { \
-		.speed_hz = SPI_HZ, \
-		.delay_usecs = 0, \
-		.bits_per_word = SPI_WORD_LEN, \
-		.tx_buf = 0, \
-		.rx_buf = 0, \
-		.len = 0, \
-		.cs_change = 0, \
+
+#define SPI_MCU_READ_DELAY_US          (0)
+#define SPI_MCU_WRITE_DELAY_US         (0)
+#define SPI_MCU_CHECK_STATUS_DELAY_US  (0)
+
+static ssize_t stm32_spi_read(int fd, const unsigned char cmd, void* buf, size_t count)
+{
+	struct spi_ioc_transfer msg[2];
+
+	memset(msg, 0, 2*sizeof(struct spi_ioc_transfer));
+
+	msg[0].tx_buf = (__u32)&cmd;
+	msg[0].len = 1;
+	msg[0].delay_usecs = SPI_MCU_READ_DELAY_US;
+
+	msg[1].rx_buf = (__u32)buf;
+	msg[1].len = count;
+	msg[1].cs_change = 1;
+
+	if(ioctl(fd, SPI_IOC_MESSAGE(2), msg) < 0) {
+		fprintf(stderr, "do spi read error.\n");
+		return -1;
 	}
+
+	return count;
+}
+
+static ssize_t stm32_spi_write(int fd, const unsigned char cmd, const void* buf, size_t count)
+{
+	struct spi_ioc_transfer msg[2];
+
+	memset(msg, 0, 2*sizeof(struct spi_ioc_transfer));
+
+	msg[0].tx_buf = (__u32)&cmd;
+	msg[0].len = 1;
+	msg[0].delay_usecs = SPI_MCU_WRITE_DELAY_US;
+
+	msg[1].tx_buf = (__u32)buf;
+	msg[1].len = count;
+	msg[1].cs_change = 1;
+
+	if(ioctl(fd, SPI_IOC_MESSAGE(2), msg) < 0) {
+		fprintf(stderr, "do spi write error.\n");
+		return -1;
+	}
+
+	return count;
+}
 
 static inline unsigned char read_status(int fd)
 {
-	struct spi_ioc_transfer msg = INIT_MSG;
-	unsigned char buf[2];
-
-	buf[0] = SPI_MCU_READ_STATUS;
-
-	msg.tx_buf = (__u32)buf;
-	msg.rx_buf = (__u32)(&buf[1]);
-	msg.len = 2;
-	msg.cs_change = 1;
-
-	ioctl(fd, SPI_IOC_MESSAGE(1), &msg);
-
-	return buf[1];
+	unsigned char status;
+	stm32_spi_read(fd, SPI_MCU_READ_STATUS, &status, 1);
+	return status;
 }
 
 static inline unsigned char read_len(int fd)
 {
-	struct spi_ioc_transfer msg = INIT_MSG;
-	unsigned char buf[2];
-
-	buf[0] = SPI_MCU_READ_LEN;
-
-	msg.tx_buf = (__u32)buf;
-	msg.rx_buf = (__u32)(&buf[1]);
-	msg.len = 2;
-	msg.cs_change = 1;
-
-	ioctl(fd, SPI_IOC_MESSAGE(1), &msg);
-
-	return buf[1];
+	unsigned char len;
+	stm32_spi_read(fd, SPI_MCU_READ_LEN, &len, 1);
+	return len;
 }
 
-static inline unsigned char read_ch(int fd)
+static inline char read_ch(int fd)
 {
-	struct spi_ioc_transfer msg = INIT_MSG;
-	unsigned char buf[2];
-
-	buf[0] = SPI_MCU_READ;
-
-	msg.tx_buf = (__u32)buf;
-	msg.rx_buf = (__u32)(&buf[1]);
-	msg.len = 2;
-	msg.cs_change = 1;
-
-	ioctl(fd, SPI_IOC_MESSAGE(1), &msg);
-
-	return buf[1];
-}
-
-static inline void put_ch(int fd, unsigned char ch)
-{
-	struct spi_ioc_transfer msg = INIT_MSG;
-	unsigned char buf[2];
-
-	buf[0] = SPI_MCU_WRITE;
-	buf[1] = ch;
-
-	msg.tx_buf = (__u32)buf;
-	msg.len = 2;
-	msg.cs_change = 1;
-
-	ioctl(fd, SPI_IOC_MESSAGE(1), &msg);
+	char ch;
+	stm32_spi_read(fd, SPI_MCU_READ, &ch, 1);
+	return ch;
 }
 
 static inline void put_len(int fd, unsigned char len)
 {
-	struct spi_ioc_transfer msg = INIT_MSG;
-	unsigned char buf[2];
+	stm32_spi_write(fd, SPI_MCU_WRITE_LEN, &len, 1);
+}
 
-	buf[0] = SPI_MCU_WRITE_LEN;
-	buf[1] = len;
-
-	msg.tx_buf = (__u32)buf;
-	msg.len = 2;
-	msg.cs_change = 1;
-
-	ioctl(fd, SPI_IOC_MESSAGE(1), &msg);
+static inline void put_ch(int fd, char ch)
+{
+	stm32_spi_write(fd, SPI_MCU_WRITE, &ch, 1);
 }
 
 static int open_spi_device(const char* dev)
